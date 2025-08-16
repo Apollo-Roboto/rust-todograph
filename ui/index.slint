@@ -1,0 +1,180 @@
+import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+enum MindTaskState {
+    Todo,
+    Doing,
+    Done,
+}
+
+struct MindTask {
+    title: string,
+    state: MindTaskState,
+    x: length,
+    y: length,
+}
+
+component Bubble inherits Rectangle {
+    in property <string> text <=> _text.text;
+    in property <length> horizontal_padding: 35px;
+    in property <length> vertical_padding: 20px;
+    height: _text.height + vertical_padding;
+    width: _text.width + horizontal_padding;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 16px;
+    background: #333333;
+    _text := Text { }
+}
+
+/// todo
+// component DragableRectangle inherits Rectangle {
+//     TouchArea {
+//         moved => {
+//             root.x = self.mouse-x - self.pressed-x + root.x;
+//             root.y = self.mouse-y - self.pressed-y + root.y;
+//         }
+//     }
+
+//     @children
+// }
+
+component PanBox inherits Rectangle {
+    // background: #ffffff11;
+    clip: true;
+    out property <length> center_x: move_me.width / 2;
+    out property <length> center_y: move_me.height / 2;
+    in property <bool> show_center: true;
+    public function move_view_to(x: length, y: length) {
+        move_me.x = root.width / 2 - x;
+        move_me.y = root.height / 2 - y;
+    }
+    move_me := Rectangle {
+        width: 1000px;
+        height: 1000px;
+        Image {
+            source: @image-url("./assets/point_tile_c_150x150.png");
+            vertical-tiling: ImageTiling.repeat;
+            horizontal-tiling: ImageTiling.repeat;
+            width: parent.width;
+            height: parent.height;
+            opacity: 5%;
+        }
+
+        TouchArea {
+            clicked => {
+                debug("Clicked");
+            }
+            moved => {
+                move_me.x = self.mouse-x - self.pressed-x + move_me.x;
+                move_me.y = self.mouse-y - self.pressed-y + move_me.y;
+            }
+        }
+
+        @children
+        if show_center:
+        Rectangle {
+            background: red;
+            width: 50px;
+            height: 2px;
+        }
+        if show_center:
+        Rectangle {
+            background: red;
+            width: 2px;
+            height: 50px;
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    in property <[MindTask]> tasks;
+    callback load();
+    VerticalBox {
+        HorizontalLayout {
+            alignment: center;
+            pan_box := PanBox {
+                width: 600px;
+                height: 600px;
+                border-color: black;
+                border-width: 1px;
+                border-radius: 6px;
+
+                // temp line
+                Path {
+                    width: parent.width;
+                    height: parent.width;
+                    x: parent.x;
+                    y: parent.y;
+                    viewbox-x: parent.x / 1px;
+                    viewbox-y: parent.y / 1px;
+                    viewbox-width: parent.width / 1px;
+                    viewbox-height: parent.height / 1px;
+                    stroke: #ff0000aa;
+                    stroke-width: 3px;
+                    private property <length> from_x: bubble_a.x + bubble_a.width / 2;
+                    private property <length> from_y: bubble_a.y + bubble_a.height / 2;
+                    private property <length> to_x: bubble_b.x + bubble_b.width / 2;
+                    private property <length> to_y: bubble_b.y + bubble_b.height / 2;
+                    MoveTo {
+                        x: from_x / 1px;
+                        y: from_y / 1px;
+                    }
+
+                    LineTo {
+                        x: to_x / 1px;
+                        y: to_y / 1px;
+                    }
+                }
+
+                // temp bubble
+                bubble_a := Bubble {
+                    x: pan_box.center_x;
+                    y: pan_box.center_y;
+                    text: "Do Thing";
+                }
+
+                // temp bubble
+                bubble_b := Bubble {
+                    x: pan_box.center_x + 123px;
+                    y: pan_box.center_y + 30px;
+                    text: "Do That";
+                }
+
+
+                // place every tasks
+                for task in tasks: Rectangle {
+                    Bubble {
+                        x: pan_box.center_x + task.x;
+                        y: pan_box.center_y + task.y;
+                        text: task.title;
+                    }
+                }
+            }
+        }
+
+        // button controls
+        VerticalLayout {
+            alignment: end;
+            HorizontalBox {
+                padding: 0px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                Button {
+                    text: "Center View";
+                    clicked => {
+                        pan_box.move_view_to(pan_box.center_x, pan_box.center_y);
+                    }
+                }
+
+                Button {
+                    text: "Load";
+                    clicked => {
+                        root.load();
+                    }
+                }
+            }
+        }
+    }
+}

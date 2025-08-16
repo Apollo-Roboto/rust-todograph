@@ -1,0 +1,12 @@
+[package]
+name = "slint-firework"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.142"
+slint = "1.12.1"
+
+[build-dependencies]
+slint-build = "1.12.1"
