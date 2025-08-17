@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -48,8 +50,10 @@ impl MindTaskState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MindTask {
+    /// identifier of this task for relationships
+    pub id: u32,
     /// position on the map
     pub position: Point,
     // pub z_index: i32, // maybe so I can remember what goes in front of what
@@ -57,17 +61,25 @@ pub struct MindTask {
     pub title: String,
     /// current state
     pub state: MindTaskState,
-    /// linked parent task if any
-    pub parent: Option<Box<MindTask>>,
+    /// linked parent task if any, parent should contain this task's id as children
+    pub parent: Option<u32>,
+    /// linked children tasks if any, children should contain this tasks's id as parent
+    pub childrens: HashSet<u32>,
 }
 
 impl MindTask {
-    pub fn new(name: String) -> Self {
+    pub fn new(title: String, id: u32) -> Self {
         Self {
+            id,
             position: Point::default(),
-            title: name,
+            title,
             state: MindTaskState::default(),
             parent: None,
+            childrens: HashSet::new(),
         }
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.parent.is_none()
     }
 }
