@@ -777,6 +777,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -3758,17 +3759,17 @@ dependencies = [
 name = "rust-firework-core"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "directories",
  "serde",
  "serde_json",
- "slint",
- "slint-build",
 ]
 
 [[package]]
 name = "rust-firework-gui-app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rust-firework-core",
  "slint",
  "slint-build",

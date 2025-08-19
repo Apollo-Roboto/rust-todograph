@@ -21,7 +21,10 @@ impl std::fmt::Display for Point {
 }
 
 impl Point {
-    pub const ZERO: Point = Point { x: 0., y: 0. };
+    pub const ZERO: Self = Self { x: 0., y: 0. };
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
@@ -56,11 +59,12 @@ pub struct MindTask {
     pub id: u32,
     /// position on the map
     pub position: Point,
-    // pub z_index: i32, // maybe so I can remember what goes in front of what
     /// main name of the task, visible from the quick views
     pub title: String,
     /// current state
     pub state: MindTaskState,
+    /// when was this item created
+    pub creation_date: chrono::DateTime<chrono::Utc>,
     /// linked parent task if any, parent should contain this task's id as children
     pub parent: Option<u32>,
     /// linked children tasks if any, children should contain this tasks's id as parent
@@ -68,18 +72,10 @@ pub struct MindTask {
 }
 
 impl MindTask {
-    pub fn new(title: String, id: u32) -> Self {
-        Self {
-            id,
-            position: Point::default(),
-            title,
-            state: MindTaskState::default(),
-            parent: None,
-            childrens: HashSet::new(),
-        }
-    }
-
     pub fn is_root(&self) -> bool {
         self.parent.is_none()
+    }
+    pub fn is_leaf(&self) -> bool {
+        self.childrens.is_empty()
     }
 }

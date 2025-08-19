@@ -1,4 +1,4 @@
-import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
 
 enum MindTaskState {
     Todo,
@@ -7,10 +7,12 @@ enum MindTaskState {
 }
 
 struct MindTask {
+    id: int,
     title: string,
     state: MindTaskState,
     x: length,
     y: length,
+    completion: float,
 }
 
 component Bubble inherits Rectangle {
@@ -26,17 +28,120 @@ component Bubble inherits Rectangle {
     _text := Text { }
 }
 
-/// todo
-// component DragableRectangle inherits Rectangle {
-//     TouchArea {
-//         moved => {
-//             root.x = self.mouse-x - self.pressed-x + root.x;
-//             root.y = self.mouse-y - self.pressed-y + root.y;
-//         }
-//     }
+component DragableRectangle inherits Rectangle {
+    callback moved();
+    TouchArea {
+        moved => {
+            root.x = self.mouse-x - self.pressed-x + root.x;
+            root.y = self.mouse-y - self.pressed-y + root.y;
+        }
+    }
 
-//     @children
-// }
+    background: #ff000055;
+    @children
+}
+
+component TaskBubble {
+    in property <MindTask> task;
+    in property <bool> extra_info: true;
+    in property <brush> default_color: #333333;
+    in property <brush> todo_color: #333333;
+    in property <brush> doing_color: #2c1c74;
+    in property <brush> done_color: #11572e;
+    callback delete_clicked();
+    callback state_change_clicked(state: MindTaskState);
+    callback moved_to(x: length, y: length);
+    DragableRectangle {
+        moved => {
+            // TODO: this position isn't right
+            root.moved_to(self.x, self.y);
+        }
+        VerticalLayout {
+            HorizontalLayout {
+                TouchArea {
+                    width: 16px;
+                    height: 16px;
+                    Rectangle {
+                        background: todo_color;
+                    }
+
+                    clicked => {
+                        debug("State todo task " + task.id + " clicked");
+                        root.state_change_clicked(MindTaskState.Todo);
+                    }
+                }
+
+                TouchArea {
+                    width: 16px;
+                    height: 16px;
+                    Rectangle {
+                        background: doing_color;
+                    }
+
+                    clicked => {
+                        debug("State doing task " + task.id + " clicked");
+                        root.state_change_clicked(MindTaskState.Doing);
+                    }
+                }
+
+                TouchArea {
+                    width: 16px;
+                    height: 16px;
+                    Rectangle {
+                        background: done_color;
+                    }
+
+                    clicked => {
+                        debug("State done task " + task.id + " clicked");
+                        root.state_change_clicked(MindTaskState.Done);
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                TouchArea {
+                    width: 16px;
+                    height: 16px;
+                    Rectangle {
+                        background: red;
+                    }
+
+                    clicked => {
+                        debug("Delete task " + task.id + " clicked");
+                        root.delete_clicked();
+                    }
+                }
+            }
+
+            Bubble {
+                text: task.title;
+                background: task.state == MindTaskState.Todo ? todo_color //
+                  : task.state == MindTaskState.Doing ? doing_color //
+                  : task.state == MindTaskState.Done ? done_color // 
+                  : default_color;
+            }
+
+            if extra_info:
+            HorizontalLayout {
+                Text {
+                    font-family: "Consolas";
+                    text: Math.round(task.completion * 100) + "%";
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                Text {
+                    font-family: "Consolas";
+                    text: task.id;
+                }
+            }
+        }
+    }
+}
 
 component PanBox inherits Rectangle {
     // background: #ffffff11;
@@ -44,10 +149,13 @@ component PanBox inherits Rectangle {
     out property <length> center_x: move_me.width / 2;
     out property <length> center_y: move_me.height / 2;
     in property <bool> show_center: true;
+    in property <bool> show_position: true;
     public function move_view_to(x: length, y: length) {
         move_me.x = root.width / 2 - x;
         move_me.y = root.height / 2 - y;
     }
+
+    // movable rectangle containing the childrens
     move_me := Rectangle {
         width: 1000px;
         height: 1000px;
@@ -61,9 +169,6 @@ component PanBox inherits Rectangle {
         }
 
         TouchArea {
-            clicked => {
-                debug("Clicked");
-            }
             moved => {
                 move_me.x = self.mouse-x - self.pressed-x + move_me.x;
                 move_me.y = self.mouse-y - self.pressed-y + move_me.y;
@@ -84,11 +189,40 @@ component PanBox inherits Rectangle {
             height: 50px;
         }
     }
+    
+    // overlay
+    Rectangle {
+        VerticalBox {
+            alignment: end;
+            if show_position:
+            Text {
+                opacity: 50%;
+                // TODO: This isn't the correct coordinate, I expect the center of the view to line up
+                text: "(" + (move_me.x) / 1px + ", " + (move_me.y) / 1px + ")";
+            }
+        }
+    }
+}
+
+enum TaskLoadingState {
+    None, Loading, Error,
+}
+enum TaskSavingState {
+    None, Saving, Error,
 }
 
 export component AppWindow inherits Window {
     in property <[MindTask]> tasks;
-    callback load();
+    in property <TaskLoadingState> task_loading_state: TaskLoadingState.None;
+    in property <string> task_loading_error_message;
+    in property <TaskSavingState> task_saving_state: TaskSavingState.None;
+    in property <string> task_saving_error_message;
+    callback load(path: string);
+    callback save(path: string);
+    callback add_task(title: string, x: length, y: length);
+    callback delete_task(id: int);
+    callback change_state(id: int, state: MindTaskState);
+    callback task_moved(id: int, x: length, y: length);
     VerticalBox {
         HorizontalLayout {
             alignment: center;
@@ -99,54 +233,72 @@ export component AppWindow inherits Window {
                 border-width: 1px;
                 border-radius: 6px;
 
-                // temp line
-                Path {
-                    width: parent.width;
-                    height: parent.width;
-                    x: parent.x;
-                    y: parent.y;
-                    viewbox-x: parent.x / 1px;
-                    viewbox-y: parent.y / 1px;
-                    viewbox-width: parent.width / 1px;
-                    viewbox-height: parent.height / 1px;
-                    stroke: #ff0000aa;
-                    stroke-width: 3px;
-                    private property <length> from_x: bubble_a.x + bubble_a.width / 2;
-                    private property <length> from_y: bubble_a.y + bubble_a.height / 2;
-                    private property <length> to_x: bubble_b.x + bubble_b.width / 2;
-                    private property <length> to_y: bubble_b.y + bubble_b.height / 2;
-                    MoveTo {
-                        x: from_x / 1px;
-                        y: from_y / 1px;
-                    }
+                // // temp line
+                // Path {
+                //     width: parent.width;
+                //     height: parent.width;
+                //     x: parent.x;
+                //     y: parent.y;
+                //     viewbox-x: parent.x / 1px;
+                //     viewbox-y: parent.y / 1px;
+                //     viewbox-width: parent.width / 1px;
+                //     viewbox-height: parent.height / 1px;
+                //     stroke: #ff0000aa;
+                //     stroke-width: 3px;
+                //     private property <length> from_x: bubble_a.x + bubble_a.width / 2;
+                //     private property <length> from_y: bubble_a.y + bubble_a.height / 2;
+                //     private property <length> to_x: bubble_b.x + bubble_b.width / 2;
+                //     private property <length> to_y: bubble_b.y + bubble_b.height / 2;
+                //     MoveTo {
+                //         x: from_x / 1px;
+                //         y: from_y / 1px;
+                //     }
 
-                    LineTo {
-                        x: to_x / 1px;
-                        y: to_y / 1px;
-                    }
-                }
+                //     LineTo {
+                //         x: to_x / 1px;
+                //         y: to_y / 1px;
+                //     }
+                // }
 
-                // temp bubble
-                bubble_a := Bubble {
-                    x: pan_box.center_x;
-                    y: pan_box.center_y;
-                    text: "Do Thing";
-                }
+                // // temp bubble
+                // bubble_a := Bubble {
+                //     x: pan_box.center_x;
+                //     y: pan_box.center_y;
+                //     text: "Do Thing";
+                // }
 
-                // temp bubble
-                bubble_b := Bubble {
-                    x: pan_box.center_x + 123px;
-                    y: pan_box.center_y + 30px;
-                    text: "Do That";
-                }
-
+                // // temp bubble
+                // bubble_b := TaskBubble {
+                //     moved_to(x, y) => {
+                //         debug(self.x, self.y);
+                //     }
+                //     x: 633px;
+                //     y: 362px;
+                //     task: {
+                //         id: 55,
+                //         title: "Meow Meow Meow",
+                //         x: 123px,
+                //         y: 123px,
+                //     };
+                // }
 
                 // place every tasks
-                for task in tasks: Rectangle {
-                    Bubble {
-                        x: pan_box.center_x + task.x;
-                        y: pan_box.center_y + task.y;
-                        text: task.title;
+                for task in tasks: TaskBubble {
+                    x: pan_box.center_x + task.x;
+                    y: pan_box.center_y + task.y;
+                    task: task;
+                    moved_to(x, y) => {
+                        // TODO: The position isn't right
+                        // oh I think the issue is because what moves isn't this task bubble but the dragable rectangle in the task bubble
+
+                        // The backend manager needs to be updated to save the tasks at the right positions
+                        // root.task_moved(task.id, self.x, self.y);
+                    }
+                    delete_clicked() => {
+                        root.delete_task(task.id);
+                    }
+                    state_change_clicked(state) => {
+                        root.change_state(task.id, state)
                     }
                 }
             }
@@ -157,10 +309,6 @@ export component AppWindow inherits Window {
             alignment: end;
             HorizontalBox {
                 padding: 0px;
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
                 Button {
                     text: "Center View";
                     clicked => {
@@ -168,10 +316,40 @@ export component AppWindow inherits Window {
                     }
                 }
 
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                title_le := LineEdit {
+                    placeholder-text: "Title";
+                }
+
+                Button {
+                    text: "Add";
+                    clicked => {
+                        root.add_task(
+                            title_le.text,
+                            0,
+                            0,
+                        );
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
                 Button {
                     text: "Load";
                     clicked => {
-                        root.load();
+                        root.load("D:\\repositories\\apollo-roboto\\rust-firework\\tasks.json");
+                    }
+                }
+
+                Button {
+                    text: "Save";
+                    clicked => {
+                        root.save("D:\\repositories\\apollo-roboto\\rust-firework\\tasks.json");
                     }
                 }
             }
