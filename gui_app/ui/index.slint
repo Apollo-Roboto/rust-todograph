@@ -1,4 +1,5 @@
 import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
+import { WorkBench, DragableRectangle } from "workbench.slint";
 
 enum MindTaskState {
     Todo,
@@ -35,19 +36,6 @@ component Bubble inherits Rectangle {
     _text := Text { }
 }
 
-component DragableRectangle inherits Rectangle {
-    callback moved();
-    TouchArea {
-        moved => {
-            root.x = self.mouse-x - self.pressed-x + root.x;
-            root.y = self.mouse-y - self.pressed-y + root.y;
-        }
-    }
-
-    background: #ff000055;
-    @children
-}
-
 component TaskBubble {
     in property <MindTask> task;
     in property <bool> extra_info: true;
@@ -57,11 +45,13 @@ component TaskBubble {
     in property <brush> done_color: #11572e;
     callback delete_clicked();
     callback state_change_clicked(state: MindTaskState);
-    callback moved_to(x: length, y: length);
+    callback moved_to(x: length, y: length); // testing
+    callback moved_by(x: length, y: length); // testing
     DragableRectangle {
-        moved => {
+        moved_by(x, y) => {
             // TODO: this position isn't right
             root.moved_to(self.x, self.y);
+            root.moved_by(x, y);
         }
         VerticalLayout {
             HorizontalLayout {
@@ -150,67 +140,6 @@ component TaskBubble {
     }
 }
 
-component PanBox inherits Rectangle {
-    // background: #ffffff11;
-    clip: true;
-    out property <length> center_x: move_me.width / 2;
-    out property <length> center_y: move_me.height / 2;
-    in property <bool> show_center: true;
-    in property <bool> show_position: true;
-    public function move_view_to(x: length, y: length) {
-        move_me.x = root.width / 2 - x;
-        move_me.y = root.height / 2 - y;
-    }
-
-    // movable rectangle containing the childrens
-    move_me := Rectangle {
-        width: 1000px;
-        height: 1000px;
-        Image {
-            source: @image-url("./assets/point_tile_c_150x150.png");
-            vertical-tiling: ImageTiling.repeat;
-            horizontal-tiling: ImageTiling.repeat;
-            width: parent.width;
-            height: parent.height;
-            opacity: 5%;
-        }
-
-        TouchArea {
-            moved => {
-                move_me.x = self.mouse-x - self.pressed-x + move_me.x;
-                move_me.y = self.mouse-y - self.pressed-y + move_me.y;
-            }
-        }
-
-        @children
-        if show_center:
-        Rectangle {
-            background: red;
-            width: 50px;
-            height: 2px;
-        }
-        if show_center:
-        Rectangle {
-            background: red;
-            width: 2px;
-            height: 50px;
-        }
-    }
-    
-    // overlay
-    Rectangle {
-        VerticalBox {
-            alignment: end;
-            if show_position:
-            Text {
-                opacity: 50%;
-                // TODO: This isn't the correct coordinate, I expect the center of the view to line up
-                text: "(" + (move_me.x) / 1px + ", " + (move_me.y) / 1px + ")";
-            }
-        }
-    }
-}
-
 component Edge inherits Rectangle {
     in property <length> stroke_width <=> p.stroke-width;
     in property <brush> stroke <=> p.stroke;
@@ -218,6 +147,18 @@ component Edge inherits Rectangle {
     in property <length> from_y;
     in property <length> to_x;
     in property <length> to_y;
+    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (0 - to_y - from_y) / 1px);
+
+    // dummy comment to unbreak the color highlight that bugs when an out property has a math formula
+    // still a little bugged
+    // ) => {
+    //
+
+    Text {
+        x: root.x;
+        text: angle / 1deg;
+    }
+
     p := Path {
         x: 0;
         y: 0;
@@ -264,12 +205,10 @@ export component AppWindow inherits Window {
     VerticalBox {
         HorizontalLayout {
             alignment: center;
-            pan_box := PanBox {
+            workbench := WorkBench {
                 width: 600px;
                 height: 600px;
-                border-color: black;
-                border-width: 1px;
-                border-radius: 6px;
+                debugging: true;
 
                 // // temp line
                 // Path {
@@ -306,31 +245,34 @@ export component AppWindow inherits Window {
                 // }
 
 
-                // temp edges
-                for edge in [
-                    [-100px, 0px, 100px, 100px],
-                    [50px, 25px, 100px, 25px],
-                    [100px, 100px, 200px, 200px],
-                    [100px, 100px, 200px, 100px],
-                    //
-                    [0px, 0px, -30px, 0px],
-                    [0px, 0px, -30px, 30px], // doesn't show
-                    [0px, 0px, -30px, -30px],
-                    [0px, 0px, 0px, 30px],
-                    [0px, 0px, 0px, -30px],
-                    [0px, 0px, 30px, -30px], // doesn't show
-                    [0px, 0px, 30px, 0px],
-                    [0px, 0px, 30px, 30px],
-                ]: Edge {
-                    stroke: green;
-                    from_x: edge[0];
-                    from_y: edge[1];
-                    to_x: edge[2];
-                    to_y: edge[3];
-                }
+                // // temp edges
+                // for edge in [ //
+                //     [-100px, 0px, 100px, 100px],
+                //     [50px, 25px, 100px, 25px],
+                //     [100px, 100px, 200px, 200px],
+                //     [100px, 100px, 200px, 100px],
+                //     // //
+                //     [0px, 0px, -30px, 0px],
+                //     [0px, 0px, -30px, 30px],
+                //     [0px, 0px, -30px, -30px],
+                //     [0px, 0px, 0px, 30px],
+                //     [0px, 0px, 0px, -30px],
+                //     [0px, 0px, 30px, -30px],
+                //     [0px, 0px, 30px, 0px],
+                //     [0px, 0px, 30px, 30px],
+                // ]: Edge {
+                //     stroke: #8c8cee7a;
+                //     stroke_width: 4px;
+                //     from_x: edge[0];
+                //     from_y: edge[1];
+                //     to_x: edge[2];
+                //     to_y: edge[3];
+                // }
 
                 // place every edges
                 for edge in edges: Edge {
+                    stroke: #8c8cee7a;
+                    stroke_width: 4px;
                     from_x: edge.from_x;
                     from_y: edge.from_y;
                     to_x: edge.to_x;
@@ -355,14 +297,15 @@ export component AppWindow inherits Window {
                 // place every tasks
                 for task in tasks: TaskBubble {
                     // todo: the task coord should be in the middle
-                    x: pan_box.center_x + task.x - self.width / 2;
-                    y: pan_box.center_y + task.y - self.height / 2;
+                    x: workbench.center_x + task.x - self.width / 2;
+                    y: workbench.center_y + task.y - self.height / 2;
                     task: task;
                     moved_to(x, y) => {
                         // TODO: The position isn't right
                         // oh I think the issue is because what moves isn't this task bubble but the dragable rectangle in the task bubble
 
                         // The backend manager needs to be updated to save the tasks at the right positions
+                        debug(self.x, self.y);
                         // root.task_moved(task.id, self.x, self.y);
                     }
                     delete_clicked() => {
@@ -383,7 +326,7 @@ export component AppWindow inherits Window {
                 Button {
                     text: "Center View";
                     clicked => {
-                        pan_box.move_view_to(pan_box.center_x, pan_box.center_y);
+                        workbench.move_view_to(workbench.center_x, workbench.center_y);
                     }
                 }
 

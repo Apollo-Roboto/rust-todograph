@@ -46,6 +46,7 @@ fn main() {
 
         *task_manager = TaskManager::load(path.to_string()).unwrap();
 
+        // get the tasks
         let tasks: Vec<ui::MindTask> = task_manager
             .tasks
             .iter()
@@ -59,9 +60,23 @@ fn main() {
             })
             .collect();
 
+        // get the positions of the edges
+        let edges: Vec<ui::MindEdge> = task_manager
+            .get_all_edges()
+            .iter()
+            .map(|(from, to)| ui::MindEdge {
+                from_x: from.x,
+                from_y: from.y,
+                to_x: to.x,
+                to_y: to.y,
+            })
+            .collect();
+
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
+        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
 
         main_window.set_tasks(tasks_model.into());
+        main_window.set_edges(edges_model.into());
     });
 
     let main_window_weak = main_window.as_weak();

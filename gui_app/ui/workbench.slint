@@ -1,0 +1,157 @@
+import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
+
+export component DragableRectangle inherits Rectangle {
+    callback moved_by(x: length, y: length);
+    TouchArea {
+        moved => {
+            root.x = self.mouse-x - self.pressed-x + root.x;
+            root.y = self.mouse-y - self.pressed-y + root.y;
+            moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+        }
+    }
+
+    background: #ff000055;
+    @children
+}
+
+component WorkAreaDebugLimit inherits Rectangle {
+    in property <brush> line_color: red;
+    in property <length> line_length: 25px;
+    in property <length> line_thickness: 2px;
+    // center horizontal
+    Rectangle {
+        background: line_color;
+        width: line_length * 2;
+        height: line_thickness;
+    }
+    // center vertical
+    Rectangle {
+        background: line_color;
+        width: line_thickness;
+        height: line_length * 2;
+    }
+    // top left corner
+    Rectangle {
+        background: line_color;
+        width: line_thickness;
+        height: line_length;
+        x: 0;
+        y: 0;
+    }
+
+    Rectangle {
+        background: line_color;
+        width: line_length;
+        height: line_thickness;
+        x: 0;
+        y: 0;
+    }
+    // top right corner
+    Rectangle {
+        background: line_color;
+        width: line_thickness;
+        height: line_length;
+        x: root.width - self.width;
+        y: 0;
+    }
+
+    Rectangle {
+        background: line_color;
+        width: line_length;
+        height: line_thickness;
+        x: root.width - self.width;
+        y: 0;
+    }
+    // bottom left corner
+    Rectangle {
+        background: line_color;
+        width: line_thickness;
+        height: line_length;
+        x: 0;
+        y: root.height - self.height;
+    }
+
+    Rectangle {
+        background: line_color;
+        width: line_length;
+        height: line_thickness;
+        x: 0;
+        y: root.height - self.height;
+    }
+    // bottom right corner 
+    Rectangle {
+        background: line_color;
+        width: line_thickness;
+        height: line_length;
+        x: root.width - self.width;
+        y: root.height - self.height;
+    }
+
+    Rectangle {
+        background: line_color;
+        width: line_length;
+        height: line_thickness;
+        x: root.width - self.width;
+        y: root.height - self.height;
+    }
+}
+
+export component WorkBench inherits Rectangle {
+    out property <length> center_x: work_area.width / 2;
+    out property <length> center_y: work_area.height / 2;
+    in property <bool> debugging: true;
+    in property <bool> show_position: true;
+    in property <image> background_image: @image-url("./assets/point_tile_c_150x150.png");
+    in property <percent> background_opacity: 5%;
+    callback moved_by(x: length, y: length);
+    width: 600px; // required for preview
+    height: 600px; // required for preview
+    clip: true;
+    border-color: black;
+    border-width: 1px;
+    border-radius: 6px;
+    public function move_view_to(x: length, y: length) {
+        work_area.x = root.width / 2 - x;
+        work_area.y = root.height / 2 - y;
+        root.moved_by(x, y); // TODO: this is probably wrong
+    }
+
+    // movable rectangle containing the childrens
+    work_area := Rectangle {
+        width: 1000px;
+        height: 1000px;
+        Image {
+            source: root.background_image;
+            vertical-tiling: ImageTiling.repeat;
+            horizontal-tiling: ImageTiling.repeat;
+            width: parent.width;
+            height: parent.height;
+            opacity: root.background_opacity;
+        }
+
+        TouchArea {
+            moved => {
+                work_area.x = self.mouse-x - self.pressed-x + work_area.x;
+                work_area.y = self.mouse-y - self.pressed-y + work_area.y;
+                root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+            }
+        }
+
+        @children
+        if debugging:
+        WorkAreaDebugLimit { }
+    }
+    
+    // overlay
+    Rectangle {
+        VerticalBox {
+            alignment: end;
+            if show_position:
+            Text {
+                opacity: 50%;
+                // TODO: This isn't the correct coordinate, I expect the center of the view to line up
+                text: "(" + (work_area.x) / 1px + ", " + (work_area.y) / 1px + ")";
+            }
+        }
+    }
+}
