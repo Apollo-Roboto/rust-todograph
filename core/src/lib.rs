@@ -190,6 +190,24 @@ impl TaskManager {
         self.active = None;
     }
 
+    pub fn get_all_edges(&self) -> Vec<(Point, Point)> {
+        let mut edges = Vec::new();
+        for task in &self.tasks {
+            let Some(parent_id) = task.parent else {
+                continue;
+            };
+            let Some(parent) = self.tasks.iter().find(|t| t.id == parent_id) else {
+                continue;
+            };
+            edges.push((
+                Point::new(task.pos.x, task.pos.y),
+                Point::new(parent.pos.x, parent.pos.y),
+            ));
+        }
+
+        edges
+    }
+
     pub fn count_root(&self) -> usize {
         let mut count = 0;
         self.tasks.iter().for_each(|t| {

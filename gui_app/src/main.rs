@@ -53,8 +53,8 @@ fn main() {
                 id: t.id as i32,
                 state: t.state.into(),
                 title: t.title.clone().into(),
-                x: t.position.x,
-                y: t.position.y,
+                x: t.pos.x,
+                y: t.pos.y,
                 completion: task_manager.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
@@ -102,8 +102,8 @@ fn main() {
                 id: t.id as i32,
                 state: t.state.into(),
                 title: t.title.clone().into(),
-                x: t.position.x,
-                y: t.position.y,
+                x: t.pos.x,
+                y: t.pos.y,
                 completion: task_manager.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
@@ -125,7 +125,7 @@ fn main() {
 
         task_manager.tasks.push(MindTask {
             id,
-            position: Point { x, y },
+            pos: Point { x, y },
             title: title.into(),
             creation_date: chrono::Utc::now(),
             ..Default::default()
@@ -138,8 +138,8 @@ fn main() {
                 id: t.id as i32,
                 state: t.state.into(),
                 title: t.title.clone().into(),
-                x: t.position.x,
-                y: t.position.y,
+                x: t.pos.x,
+                y: t.pos.y,
                 completion: task_manager.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
@@ -167,8 +167,8 @@ fn main() {
                 id: t.id as i32,
                 state: t.state.into(),
                 title: t.title.clone().into(),
-                x: t.position.x,
-                y: t.position.y,
+                x: t.pos.x,
+                y: t.pos.y,
                 completion: task_manager.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
@@ -181,7 +181,7 @@ fn main() {
     let main_window_weak = main_window.as_weak();
     let task_manager_clone = task_manager.clone();
     main_window.on_task_moved(move |task_id, x, y| {
-        let Some(_main_window) = main_window_weak.upgrade() else {
+        let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
@@ -191,8 +191,24 @@ fn main() {
             .iter_mut()
             .find(|t| t.id == task_id as u32)
         {
-            task.position = Point { x, y };
+            task.pos = Point { x, y };
         }
+
+        // get the new position of the edges
+        let edges: Vec<ui::MindEdge> = task_manager
+            .get_all_edges()
+            .iter()
+            .map(|(from, to)| ui::MindEdge {
+                from_x: from.x,
+                from_y: from.y,
+                to_x: to.x,
+                to_y: to.y,
+            })
+            .collect();
+
+        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
+
+        main_window.set_edges(edges_model.into());
     });
 
     main_window.run().unwrap();

@@ -58,7 +58,7 @@ pub struct MindTask {
     /// identifier of this task for relationships
     pub id: u32,
     /// position on the map
-    pub position: Point,
+    pub pos: Point,
     /// main name of the task, visible from the quick views
     pub title: String,
     /// current state
