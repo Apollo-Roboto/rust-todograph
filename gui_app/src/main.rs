@@ -123,8 +123,22 @@ fn main() {
             })
             .collect();
 
+        // get the new position of the edges
+        let edges: Vec<ui::MindEdge> = task_manager
+            .get_all_edges()
+            .iter()
+            .map(|(from, to)| ui::MindEdge {
+                from_x: from.x,
+                from_y: from.y,
+                to_x: to.x,
+                to_y: to.y,
+            })
+            .collect();
+
+        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
 
+        main_window.set_edges(edges_model.into());
         main_window.set_tasks(tasks_model.into());
     });
 

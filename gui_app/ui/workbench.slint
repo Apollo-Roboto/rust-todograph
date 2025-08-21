@@ -4,8 +4,6 @@ export component DragableRectangle inherits Rectangle {
     callback moved_by(x: length, y: length);
     TouchArea {
         moved => {
-            root.x = self.mouse-x - self.pressed-x + root.x;
-            root.y = self.mouse-y - self.pressed-y + root.y;
             moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
         }
     }

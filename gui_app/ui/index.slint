@@ -45,12 +45,9 @@ component TaskBubble {
     in property <brush> done_color: #11572e;
     callback delete_clicked();
     callback state_change_clicked(state: MindTaskState);
-    callback moved_to(x: length, y: length); // testing
-    callback moved_by(x: length, y: length); // testing
+    callback moved_by(x: length, y: length);
     DragableRectangle {
         moved_by(x, y) => {
-            // TODO: this position isn't right
-            root.moved_to(self.x, self.y);
             root.moved_by(x, y);
         }
         VerticalLayout {
@@ -147,7 +144,7 @@ component Edge inherits Rectangle {
     in property <length> from_y;
     in property <length> to_x;
     in property <length> to_y;
-    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (0 - to_y - from_y) / 1px);
+    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (from_y - to_y) / 1px);
 
     // dummy comment to unbreak the color highlight that bugs when an out property has a math formula
     // still a little bugged
@@ -281,32 +278,29 @@ export component AppWindow inherits Window {
 
                 // temp bubble
                 // bubble_b := TaskBubble {
-                //     moved_to(x, y) => {
-                //         debug(self.x, self.y);
-                //     }
-                //     x: pan_box.center_x - self.width / 2;
-                //     y: pan_box.center_y - self.height / 2;
+                //     x: workbench.center_x + self.task.x - self.width / 2;
+                //     y: workbench.center_y + self.task.y - self.height / 2;
                 //     task: {
                 //         id: 55,
                 //         title: "Meow Meow Meow",
                 //         x: 123px,
                 //         y: 123px,
                 //     };
+                //     moved_by(x, y) => {
+                //         self.task.x = x + self.task.x;
+                //         self.task.y = y + self.task.y;
+                //     }
                 // }
 
                 // place every tasks
                 for task in tasks: TaskBubble {
-                    // todo: the task coord should be in the middle
                     x: workbench.center_x + task.x - self.width / 2;
                     y: workbench.center_y + task.y - self.height / 2;
                     task: task;
-                    moved_to(x, y) => {
-                        // TODO: The position isn't right
-                        // oh I think the issue is because what moves isn't this task bubble but the dragable rectangle in the task bubble
-
-                        // The backend manager needs to be updated to save the tasks at the right positions
-                        debug(self.x, self.y);
-                        // root.task_moved(task.id, self.x, self.y);
+                    moved_by(x, y) => {
+                        task.x = x + task.x;
+                        task.y = y + task.y;
+                        root.task_moved(task.id, task.x, task.y);
                     }
                     delete_clicked() => {
                         root.delete_task(task.id);
