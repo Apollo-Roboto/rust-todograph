@@ -7,13 +7,12 @@ export component DragableRectangle inherits Rectangle {
             moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
         }
     }
-
-    background: #ff000055;
+    // background: #ff000055;
     @children
 }
 
 component WorkAreaDebugLimit inherits Rectangle {
-    in property <brush> line_color: red;
+    in property <brush> line_color: #282828;
     in property <length> line_length: 25px;
     in property <length> line_thickness: 2px;
     // center horizontal

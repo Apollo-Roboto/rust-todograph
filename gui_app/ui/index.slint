@@ -50,87 +50,147 @@ component TaskBubble {
         moved_by(x, y) => {
             root.moved_by(x, y);
         }
-        VerticalLayout {
-            HorizontalLayout {
-                TouchArea {
-                    width: 16px;
-                    height: 16px;
-                    Rectangle {
-                        background: todo_color;
-                    }
-
-                    clicked => {
-                        debug("State todo task " + task.id + " clicked");
-                        root.state_change_clicked(MindTaskState.Todo);
+        ContextMenuArea {
+            Menu {
+                MenuItem {
+                    title: "Rename ❌";
+                    activated => {
+                        //
                     }
                 }
 
-                TouchArea {
-                    width: 16px;
-                    height: 16px;
-                    Rectangle {
-                        background: doing_color;
+                Menu {
+                    title: "Set State";
+                    MenuItem {
+                        title: "To Do";
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Todo);
+                        }
                     }
 
-                    clicked => {
-                        debug("State doing task " + task.id + " clicked");
-                        root.state_change_clicked(MindTaskState.Doing);
-                    }
-                }
-
-                TouchArea {
-                    width: 16px;
-                    height: 16px;
-                    Rectangle {
-                        background: done_color;
+                    MenuItem {
+                        title: "Doing";
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Doing);
+                        }
                     }
 
-                    clicked => {
-                        debug("State done task " + task.id + " clicked");
-                        root.state_change_clicked(MindTaskState.Done);
+                    MenuItem {
+                        title: "Done";
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Done);
+                        }
                     }
                 }
 
-                Rectangle {
-                    horizontal-stretch: 1;
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "Set Parent ❌";
+                    activated => {
+                        //
+                    }
                 }
 
-                TouchArea {
-                    width: 16px;
-                    height: 16px;
-                    Rectangle {
-                        background: red;
+                MenuItem {
+                    title: "Add Child ❌";
+                    activated => {
+                        //
                     }
+                }
 
-                    clicked => {
-                        debug("Delete task " + task.id + " clicked");
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "Delete";
+                    activated => {
                         root.delete_clicked();
                     }
                 }
             }
 
-            Bubble {
-                text: task.title;
-                background: task.state == MindTaskState.Todo ? todo_color //
-                  : task.state == MindTaskState.Doing ? doing_color //
-                  : task.state == MindTaskState.Done ? done_color // 
-                  : default_color;
-            }
+            VerticalLayout {
+                HorizontalLayout {
+                    TouchArea {
+                        width: 16px;
+                        height: 16px;
+                        Rectangle {
+                            background: todo_color;
+                        }
 
-            if extra_info:
+                        clicked => {
+                            debug("State todo task " + task.id + " clicked");
+                            root.state_change_clicked(MindTaskState.Todo);
+                        }
+                    }
+
+                    TouchArea {
+                        width: 16px;
+                        height: 16px;
+                        Rectangle {
+                            background: doing_color;
+                        }
+
+                        clicked => {
+                            debug("State doing task " + task.id + " clicked");
+                            root.state_change_clicked(MindTaskState.Doing);
+                        }
+                    }
+
+                    TouchArea {
+                        width: 16px;
+                        height: 16px;
+                        Rectangle {
+                            background: done_color;
+                        }
+
+                        clicked => {
+                            debug("State done task " + task.id + " clicked");
+                            root.state_change_clicked(MindTaskState.Done);
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    TouchArea {
+                        width: 16px;
+                        height: 16px;
+                        Rectangle {
+                            background: red;
+                        }
+
+                        clicked => {
+                            debug("Delete task " + task.id + " clicked");
+                            root.delete_clicked();
+                        }
+                    }
+                }
+
+                Bubble {
+                    text: task.title;
+                    background: task.state == MindTaskState.Todo ? todo_color //
+                      : task.state == MindTaskState.Doing ? doing_color //
+                      : task.state == MindTaskState.Done ? done_color // 
+                      : default_color;
+                }
+
+                if extra_info:
             HorizontalLayout {
-                Text {
-                    font-family: "Consolas";
-                    text: Math.round(task.completion * 100) + "%";
-                }
+                    Text {
+                        font-family: "Consolas";
+                        text: Math.round(task.completion * 100) + "%";
+                    }
 
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
 
-                Text {
-                    font-family: "Consolas";
-                    text: task.id;
+                    Text {
+                        font-family: "Consolas";
+                        text: task.id;
+                    }
                 }
             }
         }
@@ -150,11 +210,6 @@ component Edge inherits Rectangle {
     // still a little bugged
     // ) => {
     //
-
-    Text {
-        x: root.x;
-        text: angle / 1deg;
-    }
 
     p := Path {
         x: 0;
@@ -206,65 +261,16 @@ export component AppWindow inherits Window {
                 width: 600px;
                 height: 600px;
                 debugging: true;
-
-                // // temp line
-                // Path {
-                //     width: parent.width;
-                //     height: parent.width;
-                //     x: parent.x;
-                //     y: parent.y;
-                //     viewbox-x: parent.x / 1px;
-                //     viewbox-y: parent.y / 1px;
-                //     viewbox-width: parent.width / 1px;
-                //     viewbox-height: parent.height / 1px;
-                //     stroke: #ff0000aa;
-                //     stroke-width: 3px;
-                //     private property <length> from_x: bubble_a.x + bubble_a.width / 2;
-                //     private property <length> from_y: bubble_a.y + bubble_a.height / 2;
-                //     private property <length> to_x: bubble_b.x + bubble_b.width / 2;
-                //     private property <length> to_y: bubble_b.y + bubble_b.height / 2;
-                //     MoveTo {
-                //         x: from_x / 1px;
-                //         y: from_y / 1px;
-                //     }
-
-                //     LineTo {
-                //         x: to_x / 1px;
-                //         y: to_y / 1px;
-                //     }
-                // }
-
-                // // temp bubble
-                // bubble_a := Bubble {
-                //     x: pan_box.center_x;
-                //     y: pan_box.center_y;
-                //     text: "Do Thing";
-                // }
-
-
-                // // temp edges
-                // for edge in [ //
-                //     [-100px, 0px, 100px, 100px],
-                //     [50px, 25px, 100px, 25px],
-                //     [100px, 100px, 200px, 200px],
-                //     [100px, 100px, 200px, 100px],
-                //     // //
-                //     [0px, 0px, -30px, 0px],
-                //     [0px, 0px, -30px, 30px],
-                //     [0px, 0px, -30px, -30px],
-                //     [0px, 0px, 0px, 30px],
-                //     [0px, 0px, 0px, -30px],
-                //     [0px, 0px, 30px, -30px],
-                //     [0px, 0px, 30px, 0px],
-                //     [0px, 0px, 30px, 30px],
-                // ]: Edge {
-                //     stroke: #8c8cee7a;
-                //     stroke_width: 4px;
-                //     from_x: edge[0];
-                //     from_y: edge[1];
-                //     to_x: edge[2];
-                //     to_y: edge[3];
-                // }
+                ContextMenuArea {
+                    Menu {
+                        MenuItem {
+                            title: "New Task ❌";
+                            activated => {
+                                //
+                            }
+                        }
+                    }
+                }
 
                 // place every edges
                 for edge in edges: Edge {
@@ -311,6 +317,7 @@ export component AppWindow inherits Window {
                 }
             }
         }
+    
 
         // button controls
         VerticalLayout {
