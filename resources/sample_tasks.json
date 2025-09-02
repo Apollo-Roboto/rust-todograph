@@ -1,0 +1,644 @@
+[
+  {
+    "id": 0,
+    "pos": {
+      "x": -3.0,
+      "y": 74.0
+    },
+    "title": "Video Game Project",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:00:00Z",
+    "parent": null,
+    "childrens": [
+      2,
+      4,
+      5,
+      1,
+      3
+    ]
+  },
+  {
+    "id": 1,
+    "pos": {
+      "x": -351.0,
+      "y": -415.0
+    },
+    "title": "Game Design",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:05:00Z",
+    "parent": 0,
+    "childrens": [
+      7,
+      6
+    ]
+  },
+  {
+    "id": 2,
+    "pos": {
+      "x": 513.0,
+      "y": -361.0
+    },
+    "title": "Art",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:06:00Z",
+    "parent": 0,
+    "childrens": [
+      10,
+      9,
+      8
+    ]
+  },
+  {
+    "id": 3,
+    "pos": {
+      "x": 683.0,
+      "y": 241.0
+    },
+    "title": "Programming",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:07:00Z",
+    "parent": 0,
+    "childrens": [
+      11,
+      14,
+      12,
+      13
+    ]
+  },
+  {
+    "id": 4,
+    "pos": {
+      "x": -640.0,
+      "y": 26.0
+    },
+    "title": "Audio",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:08:00Z",
+    "parent": 0,
+    "childrens": [
+      16,
+      15
+    ]
+  },
+  {
+    "id": 5,
+    "pos": {
+      "x": 19.0,
+      "y": 469.0
+    },
+    "title": "QA & Launch",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:09:00Z",
+    "parent": 0,
+    "childrens": [
+      18,
+      19,
+      17
+    ]
+  },
+  {
+    "id": 6,
+    "pos": {
+      "x": -629.0,
+      "y": -487.0
+    },
+    "title": "Concept Document",
+    "state": "Todo",
+    "creation_date": "2025-08-20T12:00:00Z",
+    "parent": 1,
+    "childrens": [
+      20,
+      21
+    ]
+  },
+  {
+    "id": 7,
+    "pos": {
+      "x": -279.0,
+      "y": -622.0
+    },
+    "title": "Level Design",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:30:00Z",
+    "parent": 1,
+    "childrens": [
+      23,
+      22
+    ]
+  },
+  {
+    "id": 8,
+    "pos": {
+      "x": 387.0,
+      "y": -530.0
+    },
+    "title": "Character Art",
+    "state": "Todo",
+    "creation_date": "2025-08-21T06:50:00Z",
+    "parent": 2,
+    "childrens": [
+      26,
+      25,
+      24
+    ]
+  },
+  {
+    "id": 9,
+    "pos": {
+      "x": 654.0,
+      "y": -574.0
+    },
+    "title": "Environment Art",
+    "state": "Todo",
+    "creation_date": "2025-08-21T06:55:00Z",
+    "parent": 2,
+    "childrens": [
+      28,
+      27
+    ]
+  },
+  {
+    "id": 10,
+    "pos": {
+      "x": 753.0,
+      "y": -326.0
+    },
+    "title": "UI / UX Art",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:00:00Z",
+    "parent": 2,
+    "childrens": [
+      29,
+      30
+    ]
+  },
+  {
+    "id": 11,
+    "pos": {
+      "x": 480.0,
+      "y": 357.0
+    },
+    "title": "Engine Setup",
+    "state": "Todo",
+    "creation_date": "2025-08-19T09:00:00Z",
+    "parent": 3,
+    "childrens": []
+  },
+  {
+    "id": 12,
+    "pos": {
+      "x": 889.0,
+      "y": 49.0
+    },
+    "title": "Player Controller",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:15:00Z",
+    "parent": 3,
+    "childrens": [
+      32,
+      33
+    ]
+  },
+  {
+    "id": 13,
+    "pos": {
+      "x": 1022.0,
+      "y": 298.0
+    },
+    "title": "AI & NPCs",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:20:00Z",
+    "parent": 3,
+    "childrens": [
+      35,
+      34
+    ]
+  },
+  {
+    "id": 14,
+    "pos": {
+      "x": 797.0,
+      "y": 503.0
+    },
+    "title": "Physics & Collision",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:25:00Z",
+    "parent": 3,
+    "childrens": [
+      36,
+      37
+    ]
+  },
+  {
+    "id": 15,
+    "pos": {
+      "x": -818.0,
+      "y": -16.0
+    },
+    "title": "Sound Effects",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:30:00Z",
+    "parent": 4,
+    "childrens": [
+      38,
+      39
+    ]
+  },
+  {
+    "id": 16,
+    "pos": {
+      "x": -719.0,
+      "y": 289.0
+    },
+    "title": "Music Composition",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:45:00Z",
+    "parent": 4,
+    "childrens": [
+      40,
+      41
+    ]
+  },
+  {
+    "id": 17,
+    "pos": {
+      "x": -191.0,
+      "y": 641.0
+    },
+    "title": "Internal Testing",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:00:00Z",
+    "parent": 5,
+    "childrens": [
+      43,
+      42
+    ]
+  },
+  {
+    "id": 18,
+    "pos": {
+      "x": -19.0,
+      "y": 897.0
+    },
+    "title": "Beta Release",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:10:00Z",
+    "parent": 5,
+    "childrens": [
+      45,
+      44
+    ]
+  },
+  {
+    "id": 19,
+    "pos": {
+      "x": 276.0,
+      "y": 709.0
+    },
+    "title": "Marketing & Store Setup",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:20:00Z",
+    "parent": 5,
+    "childrens": [
+      46,
+      47,
+      48
+    ]
+  },
+  {
+    "id": 20,
+    "pos": {
+      "x": -902.0,
+      "y": -449.0
+    },
+    "title": "Gameplay Document Review",
+    "state": "Todo",
+    "creation_date": "2025-08-20T14:00:00Z",
+    "parent": 6,
+    "childrens": []
+  },
+  {
+    "id": 21,
+    "pos": {
+      "x": -713.0,
+      "y": -643.0
+    },
+    "title": "Feature List",
+    "state": "Todo",
+    "creation_date": "2025-08-21T08:10:00Z",
+    "parent": 6,
+    "childrens": []
+  },
+  {
+    "id": 22,
+    "pos": {
+      "x": -195.0,
+      "y": -748.0
+    },
+    "title": "Prototype Levels",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:35:00Z",
+    "parent": 7,
+    "childrens": []
+  },
+  {
+    "id": 23,
+    "pos": {
+      "x": -424.0,
+      "y": -782.0
+    },
+    "title": "Puzzle Layouts",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:40:00Z",
+    "parent": 7,
+    "childrens": []
+  },
+  {
+    "id": 24,
+    "pos": {
+      "x": 389.0,
+      "y": -756.0
+    },
+    "title": "Character Sketches",
+    "state": "Todo",
+    "creation_date": "2025-08-21T06:55:00Z",
+    "parent": 8,
+    "childrens": []
+  },
+  {
+    "id": 25,
+    "pos": {
+      "x": 222.0,
+      "y": -732.0
+    },
+    "title": "Rigging",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:05:00Z",
+    "parent": 8,
+    "childrens": []
+  },
+  {
+    "id": 26,
+    "pos": {
+      "x": 168.0,
+      "y": -615.0
+    },
+    "title": "Textures & Materials",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:10:00Z",
+    "parent": 8,
+    "childrens": []
+  },
+  {
+    "id": 27,
+    "pos": {
+      "x": 653.0,
+      "y": -754.0
+    },
+    "title": "Environment Blockout",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:00:00Z",
+    "parent": 9,
+    "childrens": []
+  },
+  {
+    "id": 28,
+    "pos": {
+      "x": 906.0,
+      "y": -706.0
+    },
+    "title": "Props & Foliage",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:02:00Z",
+    "parent": 9,
+    "childrens": []
+  },
+  {
+    "id": 29,
+    "pos": {
+      "x": 977.0,
+      "y": -279.0
+    },
+    "title": "Wireframes",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:05:00Z",
+    "parent": 10,
+    "childrens": []
+  },
+  {
+    "id": 30,
+    "pos": {
+      "x": 945.0,
+      "y": -509.0
+    },
+    "title": "HUD Design",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:06:00Z",
+    "parent": 10,
+    "childrens": []
+  },
+  {
+    "id": 32,
+    "pos": {
+      "x": 933.0,
+      "y": -100.0
+    },
+    "title": "Movement Mechanics",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:16:00Z",
+    "parent": 12,
+    "childrens": []
+  },
+  {
+    "id": 33,
+    "pos": {
+      "x": 1094.0,
+      "y": 8.0
+    },
+    "title": "Input Mapping",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:17:00Z",
+    "parent": 12,
+    "childrens": []
+  },
+  {
+    "id": 34,
+    "pos": {
+      "x": 1166.0,
+      "y": 169.0
+    },
+    "title": "Pathfinding",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:21:00Z",
+    "parent": 13,
+    "childrens": []
+  },
+  {
+    "id": 35,
+    "pos": {
+      "x": 1198.0,
+      "y": 400.0
+    },
+    "title": "Behavior Trees",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:22:00Z",
+    "parent": 13,
+    "childrens": []
+  },
+  {
+    "id": 36,
+    "pos": {
+      "x": 792.0,
+      "y": 625.0
+    },
+    "title": "Collision Meshes",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:26:00Z",
+    "parent": 14,
+    "childrens": []
+  },
+  {
+    "id": 37,
+    "pos": {
+      "x": 959.0,
+      "y": 447.0
+    },
+    "title": "Physics Tuning",
+    "state": "Todo",
+    "creation_date": "2025-08-21T07:27:00Z",
+    "parent": 14,
+    "childrens": []
+  },
+  {
+    "id": 38,
+    "pos": {
+      "x": -990.0,
+      "y": 102.0
+    },
+    "title": "Foley Recording",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:35:00Z",
+    "parent": 15,
+    "childrens": []
+  },
+  {
+    "id": 39,
+    "pos": {
+      "x": -974.0,
+      "y": -157.0
+    },
+    "title": "SFX Implementation",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:40:00Z",
+    "parent": 15,
+    "childrens": []
+  },
+  {
+    "id": 40,
+    "pos": {
+      "x": -936.0,
+      "y": 377.0
+    },
+    "title": "Main Theme Composition",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:50:00Z",
+    "parent": 16,
+    "childrens": []
+  },
+  {
+    "id": 41,
+    "pos": {
+      "x": -696.0,
+      "y": 433.0
+    },
+    "title": "Loopable Tracks",
+    "state": "Todo",
+    "creation_date": "2025-08-21T05:55:00Z",
+    "parent": 16,
+    "childrens": []
+  },
+  {
+    "id": 42,
+    "pos": {
+      "x": -362.0,
+      "y": 804.0
+    },
+    "title": "Bug Triage",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:05:00Z",
+    "parent": 17,
+    "childrens": []
+  },
+  {
+    "id": 43,
+    "pos": {
+      "x": -444.0,
+      "y": 636.0
+    },
+    "title": "Test Plans & Cases",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:06:00Z",
+    "parent": 17,
+    "childrens": []
+  },
+  {
+    "id": 44,
+    "pos": {
+      "x": -244.0,
+      "y": 986.0
+    },
+    "title": "Build Packaging",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:12:00Z",
+    "parent": 18,
+    "childrens": []
+  },
+  {
+    "id": 45,
+    "pos": {
+      "x": 57.0,
+      "y": 1047.0
+    },
+    "title": "Feedback Collection",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:13:00Z",
+    "parent": 18,
+    "childrens": []
+  },
+  {
+    "id": 46,
+    "pos": {
+      "x": 400.0,
+      "y": 874.0
+    },
+    "title": "Store Assets (icons, screenshots)",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:25:00Z",
+    "parent": 19,
+    "childrens": []
+  },
+  {
+    "id": 47,
+    "pos": {
+      "x": 407.0,
+      "y": 605.0
+    },
+    "title": "Press Kit",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:26:00Z",
+    "parent": 19,
+    "childrens": []
+  },
+  {
+    "id": 48,
+    "pos": {
+      "x": 532.0,
+      "y": 731.0
+    },
+    "title": "Community Plan",
+    "state": "Todo",
+    "creation_date": "2025-08-21T09:27:00Z",
+    "parent": 19,
+    "childrens": []
+  }
+]

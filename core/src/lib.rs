@@ -255,6 +255,7 @@ impl TaskManager {
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
+    use std::path::PathBuf;
 
     use super::*;
 
@@ -302,5 +303,14 @@ mod test {
         };
 
         assert_eq!(manager.calc_progress(0), Some(0.0));
+    }
+
+    #[test]
+    fn test_load_does_not_fails() {
+        let file_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/sample_tasks.json");
+        let res = TaskManager::load(file_path);
+
+        res.expect("Failed to load file");
     }
 }
