@@ -94,15 +94,15 @@ component WorkAreaDebugLimit inherits Rectangle {
 }
 
 export component WorkBench inherits Rectangle {
-    out property <length> center_x: work_area.width / 2;
-    out property <length> center_y: work_area.height / 2;
+    in property <length> work_area_width: 5000px;
+    in property <length> work_area_height: 5000px;
     in property <bool> debugging: true;
     in property <bool> show_position: true;
     in property <image> background_image: @image-url("./assets/point_tile_c_150x150.png");
     in property <percent> background_opacity: 5%;
+    out property <length> center_x: work_area.width / 2;
+    out property <length> center_y: work_area.height / 2;
     callback moved_by(x: length, y: length);
-    width: 600px; // required for preview
-    height: 600px; // required for preview
     clip: true;
     border-color: black;
     border-width: 1px;
@@ -115,8 +115,8 @@ export component WorkBench inherits Rectangle {
 
     // movable rectangle containing the childrens
     work_area := Rectangle {
-        width: 1000px;
-        height: 1000px;
+        width: root.work_area_width;
+        height: root.work_area_height;
         Image {
             source: root.background_image;
             vertical-tiling: ImageTiling.repeat;
@@ -140,15 +140,16 @@ export component WorkBench inherits Rectangle {
     }
     
     // overlay
-    Rectangle {
-        VerticalBox {
-            alignment: end;
-            if show_position:
-            Text {
-                opacity: 50%;
-                // TODO: This isn't the correct coordinate, I expect the center of the view to line up
-                text: "(" + (work_area.x) / 1px + ", " + (work_area.y) / 1px + ")";
-            }
-        }
-    }
+    // Rectangle {
+    //     VerticalBox {
+    //         alignment: end;
+    //         if show_position:
+    //         Text {
+    //             opacity: 50%;
+    //             // TODO: This isn't the correct coordinate, I expect the center of the view to line up
+    //             // Also this doesn't work right now because using x or y from the work area causes a binding loop
+    //             text: "(" + (work_area.x) / 1px + ", " + (work_area.y) / 1px + ")";
+    //         }
+    //     }
+    // }
 }

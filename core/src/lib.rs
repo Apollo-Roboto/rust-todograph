@@ -85,12 +85,15 @@ impl TaskManager {
     }
 
     /// Removes link to parent
-    pub fn unlink_parent(&mut self, task_id: u32, parent_id: u32) {
+    pub fn unlink_parent(&mut self, task_id: u32) {
+        let mut parent_id = None;
+
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
+            parent_id = task.parent;
             task.parent = None;
         };
 
-        if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == parent_id) {
+        if let Some(parent) = self.tasks.iter_mut().find(|t| Some(t.id) == parent_id) {
             parent.childrens.remove(&task_id);
         };
     }
@@ -109,17 +112,13 @@ impl TaskManager {
     /// Removes links to parent and childrens
     /// Useful before deleting a task
     pub fn unlink_all(&mut self, task_id: u32) {
-        let mut parent_id = None;
         let mut children_ids = HashSet::new();
 
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
-            parent_id = task.parent;
             children_ids = task.childrens.clone();
         };
 
-        if let Some(parent_id) = parent_id {
-            self.unlink_parent(task_id, parent_id);
-        }
+        self.unlink_parent(task_id);
 
         for children_id in children_ids {
             self.unlink_children(task_id, children_id);
@@ -178,6 +177,30 @@ impl TaskManager {
         }
 
         Some(current_percent)
+    }
+
+    /// Calculate the progress of all task, 0.0 to 1.0, None if not found
+    /// If todo or doing, calculates from children completion
+    /// If done, returns 1.0
+    pub fn calc_progress_all(&self) -> Option<f32> {
+        if self.tasks.is_empty() {
+            return None;
+        }
+        let mut sum_percent = 0.;
+        let mut num_root = 0;
+
+        self.tasks.iter().for_each(|t| {
+            if t.is_root() {
+                num_root += 1;
+                sum_percent += self.calc_progress(t.id).unwrap_or(0.);
+            }
+        });
+
+        if num_root == 0 {
+            return None;
+        }
+
+        Some(sum_percent / num_root as f32)
     }
 
     pub fn select_all(&mut self) {

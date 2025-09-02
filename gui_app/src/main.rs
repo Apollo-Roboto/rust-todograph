@@ -140,6 +140,7 @@ fn main() {
 
         main_window.set_edges(edges_model.into());
         main_window.set_tasks(tasks_model.into());
+        main_window.set_overall_progress(task_manager.calc_progress_all().unwrap_or(0.0));
     });
 
     let main_window_weak = main_window.as_weak();
@@ -176,6 +177,8 @@ fn main() {
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
 
         main_window.set_tasks(tasks_model.into());
+        main_window.set_active_task(id as i32);
+        main_window.set_overall_progress(task_manager.calc_progress_all().unwrap_or(0.0));
     });
 
     let main_window_weak = main_window.as_weak();
@@ -205,6 +208,7 @@ fn main() {
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
 
         main_window.set_tasks(tasks_model.into());
+        main_window.set_overall_progress(task_manager.calc_progress_all().unwrap_or(0.0));
     });
 
     let main_window_weak = main_window.as_weak();
@@ -222,6 +226,68 @@ fn main() {
         {
             task.pos = Point { x, y };
         }
+
+        // get the new position of the edges
+        let edges: Vec<ui::MindEdge> = task_manager
+            .get_all_edges()
+            .iter()
+            .map(|(from, to)| ui::MindEdge {
+                from_x: from.x,
+                from_y: from.y,
+                to_x: to.x,
+                to_y: to.y,
+            })
+            .collect();
+
+        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
+
+        main_window.set_edges(edges_model.into());
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let task_manager_clone = task_manager.clone();
+    main_window.on_set_parent_to_task(move |task_id, parent_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+
+        let mut task_manager = task_manager_clone.lock().unwrap();
+
+        let Ok(task_id) = task_id.try_into() else {
+            return;
+        };
+        let Ok(parent_id) = parent_id.try_into() else {
+            return;
+        };
+
+        task_manager.set_parent(task_id, parent_id);
+
+        // get the new position of the edges
+        let edges: Vec<ui::MindEdge> = task_manager
+            .get_all_edges()
+            .iter()
+            .map(|(from, to)| ui::MindEdge {
+                from_x: from.x,
+                from_y: from.y,
+                to_x: to.x,
+                to_y: to.y,
+            })
+            .collect();
+
+        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
+
+        main_window.set_edges(edges_model.into());
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let task_manager_clone = task_manager.clone();
+    main_window.on_unset_parent_from_task(move |task_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+
+        let mut task_manager = task_manager_clone.lock().unwrap();
+        task_manager.unlink_parent(task_id as u32);
 
         // get the new position of the edges
         let edges: Vec<ui::MindEdge> = task_manager

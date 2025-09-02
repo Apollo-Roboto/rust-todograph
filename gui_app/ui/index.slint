@@ -27,10 +27,11 @@ component Bubble inherits Rectangle {
     in property <string> text <=> _text.text;
     in property <length> horizontal_padding: 35px;
     in property <length> vertical_padding: 20px;
+    in property <bool> active: false;
     height: _text.height + vertical_padding;
     width: _text.width + horizontal_padding;
     border-width: 1px;
-    border-color: black;
+    border-color: root.active ? orange : black;
     border-radius: 16px;
     background: #333333;
     _text := Text { }
@@ -43,9 +44,16 @@ component TaskBubble {
     in property <brush> todo_color: #333333;
     in property <brush> doing_color: #2c1c74;
     in property <brush> done_color: #11572e;
+    in property <bool> active: false;
     callback delete_clicked();
     callback state_change_clicked(state: MindTaskState);
+    callback rename_clicked();
+    callback set_parent_clicked();
+    callback remove_parent_clicked();
+    callback add_children_clicked();
     callback moved_by(x: length, y: length);
+    // TODO: this isn't called
+    callback clicked();
     DragableRectangle {
         moved_by(x, y) => {
             root.moved_by(x, y);
@@ -53,9 +61,9 @@ component TaskBubble {
         ContextMenuArea {
             Menu {
                 MenuItem {
-                    title: "Rename ❌";
+                    title: "Rename";
                     activated => {
-                        //
+                        root.rename_clicked();
                     }
                 }
 
@@ -86,16 +94,23 @@ component TaskBubble {
                 MenuSeparator { }
 
                 MenuItem {
-                    title: "Set Parent ❌";
+                    title: "Set Parent";
                     activated => {
-                        //
+                        root.set_parent_clicked();
                     }
                 }
 
                 MenuItem {
-                    title: "Add Child ❌";
+                    title: "Remove Parent";
                     activated => {
-                        //
+                        root.remove_parent_clicked();
+                    }
+                }
+
+                MenuItem {
+                    title: "Add Child";
+                    activated => {
+                        root.add_children_clicked();
                     }
                 }
 
@@ -174,6 +189,7 @@ component TaskBubble {
                       : task.state == MindTaskState.Doing ? doing_color //
                       : task.state == MindTaskState.Done ? done_color // 
                       : default_color;
+                    active: root.active;
                 }
 
                 if extra_info:
@@ -240,6 +256,9 @@ enum TaskLoadingState {
 enum TaskSavingState {
     None, Saving, Error,
 }
+enum AppMode {
+    None, SetParent, AddChildren,
+}
 
 export component AppWindow inherits Window {
     in property <[MindTask]> tasks;
@@ -248,80 +267,154 @@ export component AppWindow inherits Window {
     in property <string> task_loading_error_message;
     in property <TaskSavingState> task_saving_state: TaskSavingState.None;
     in property <string> task_saving_error_message;
+    in property <float> overall_progress: 0.0;
+    out property <AppMode> mode: AppMode.None;
+    in-out property <int> active_task: -1;
     callback load(path: string);
     callback save(path: string);
     callback add_task(title: string, x: length, y: length);
+    callback set_parent_to_task(id: int, parent: int);
+    callback unset_parent_from_task(id: int);
     callback delete_task(id: int);
     callback change_state(id: int, state: MindTaskState);
     callback task_moved(id: int, x: length, y: length);
+    function clear_active_task() {
+        root.active_task = -1;
+    }
+    function set_active_task(id: int) {
+        root.active_task = id;
+    }
+    preferred-width: 600px;
+    preferred-height: 600px;
     VerticalBox {
-        HorizontalLayout {
-            alignment: center;
-            workbench := WorkBench {
-                width: 600px;
-                height: 600px;
-                debugging: true;
-                ContextMenuArea {
-                    Menu {
-                        MenuItem {
-                            title: "New Task ❌";
-                            activated => {
-                                //
-                            }
+        alignment: LayoutAlignment.stretch;
+        workbench := WorkBench {
+            debugging: true;
+            ContextMenuArea {
+                Menu {
+                    MenuItem {
+                        title: "New Task";
+                        activated => {
+                            add_task("New Todo", 0px, 0px);
                         }
                     }
                 }
+            }
 
-                // place every edges
-                for edge in edges: Edge {
-                    stroke: #8c8cee7a;
-                    stroke_width: 4px;
-                    from_x: edge.from_x;
-                    from_y: edge.from_y;
-                    to_x: edge.to_x;
-                    to_y: edge.to_y;
+            // place every edges
+            for edge in edges: Edge {
+                stroke: #8c8cee7a;
+                stroke_width: 4px;
+                from_x: edge.from_x;
+                from_y: edge.from_y;
+                to_x: edge.to_x;
+                to_y: edge.to_y;
+            }
+
+            // TODO: add a line from the active task to the cursor
+            if root.mode == AppMode.SetParent //
+            || root.mode == AppMode.AddChildren:
+            Edge {
+                stroke: #8c8cee7a;
+                stroke_width: 4px;
+                from_x: 0;
+                from_y: 0;
+                to_x: workbench.center_x;
+                to_y: workbench.center_y;
+            }
+
+
+            // temp bubble
+            // bubble_b := TaskBubble {
+            //     x: workbench.center_x + self.task.x - self.width / 2;
+            //     y: workbench.center_y + self.task.y - self.height / 2;
+            //     active: false;
+            //     task: {
+            //         id: 55,
+            //         title: "Meow Meow Meow",
+            //         x: 123px,
+            //         y: 123px,
+            //     };
+            //     moved_by(x, y) => {
+            //         self.task.x = x + self.task.x;
+            //         self.task.y = y + self.task.y;
+            //     }
+            // }
+
+            // place every tasks
+            for task in tasks: TaskBubble {
+                x: workbench.center_x + task.x - self.width / 2;
+                y: workbench.center_y + task.y - self.height / 2;
+                task: task;
+                active: root.active_task == task.id;
+                moved_by(x, y) => {
+                    task.x = x + task.x;
+                    task.y = y + task.y;
+                    root.task_moved(task.id, task.x, task.y);
                 }
-
-                // temp bubble
-                // bubble_b := TaskBubble {
-                //     x: workbench.center_x + self.task.x - self.width / 2;
-                //     y: workbench.center_y + self.task.y - self.height / 2;
-                //     task: {
-                //         id: 55,
-                //         title: "Meow Meow Meow",
-                //         x: 123px,
-                //         y: 123px,
-                //     };
-                //     moved_by(x, y) => {
-                //         self.task.x = x + self.task.x;
-                //         self.task.y = y + self.task.y;
-                //     }
-                // }
-
-                // place every tasks
-                for task in tasks: TaskBubble {
-                    x: workbench.center_x + task.x - self.width / 2;
-                    y: workbench.center_y + task.y - self.height / 2;
-                    task: task;
-                    moved_by(x, y) => {
-                        task.x = x + task.x;
-                        task.y = y + task.y;
-                        root.task_moved(task.id, task.x, task.y);
+                rename_clicked => {
+                    //
+                }
+                delete_clicked() => {
+                    root.delete_task(task.id);
+                    root.clear_active_task();
+                }
+                state_change_clicked(state) => {
+                    root.change_state(task.id, state)
+                }
+                set_parent_clicked => {
+                    root.set_active_task(task.id);
+                    root.mode = AppMode.SetParent;
+                }
+                remove_parent_clicked => {
+                    root.unset_parent_from_task(task.id);
+                }
+                add_children_clicked => {
+                    root.set_active_task(task.id);
+                    root.mode = AppMode.AddChildren;
+                }
+                clicked => {
+                    if root.mode == AppMode.SetParent {
+                        root.set_parent_to_task(root.active_task, task.id);
+                        root.mode = AppMode.None;
+                        return;
                     }
-                    delete_clicked() => {
-                        root.delete_task(task.id);
-                    }
-                    state_change_clicked(state) => {
-                        root.change_state(task.id, state)
-                    }
+                    root.set_active_task(task.id);
                 }
             }
         }
+        
     
 
         // button controls
         VerticalLayout {
             alignment: end;
+            // debug row
+            HorizontalBox {
+                alignment: stretch;
+                Text {
+                    horizontal-stretch: 1;
+                    horizontal-alignment: center;
+                    text: root.mode == AppMode.None ? "Mode: None" //
+                            : root.mode == AppMode.AddChildren ? "Mode: AddChildren" //
+                            : root.mode == AppMode.SetParent ? "Mode: SetParent" //
+                            : "Mode: AAAAAAAAAAAAA";
+                }
+
+                Text {
+                    horizontal-stretch: 1;
+                    horizontal-alignment: center;
+                    text: "Active Task: #" + root.active_task;
+                }
+
+                Text {
+                    horizontal-stretch: 1;
+                    horizontal-alignment: center;
+                    text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
+                }
+            }
+
+            // button row
             HorizontalBox {
                 padding: 0px;
                 Button {
@@ -331,22 +424,17 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                title_le := LineEdit {
-                    placeholder-text: "Title";
+                Button {
+                    text: "Clear Active";
+                    clicked => {
+                        root.clear_active_task();
+                    }
                 }
 
                 Button {
-                    text: "Add";
+                    text: "Reset Mode";
                     clicked => {
-                        root.add_task(
-                            title_le.text,
-                            0,
-                            0,
-                        );
+                        root.mode = AppMode.None;
                     }
                 }
 
