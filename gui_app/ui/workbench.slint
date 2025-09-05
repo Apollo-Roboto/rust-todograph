@@ -2,9 +2,23 @@ import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint"
 
 export component DragableRectangle inherits Rectangle {
     callback moved_by(x: length, y: length);
+    callback clicked();
+    out property <bool> dragged: false;
     TouchArea {
         moved => {
+            root.dragged = true;
             moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+            // moved shouldn't call clicked
+        }
+        clicked => {
+            if dragged == false {
+                root.clicked();
+            }
+        }
+        pointer-event(event) => {
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+                dragged = false;
+            }
         }
     }
     // background: #ff000055;
@@ -103,6 +117,7 @@ export component WorkBench inherits Rectangle {
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
     callback moved_by(x: length, y: length);
+    callback workbench_clicked();
     clip: true;
     border-color: black;
     border-width: 1px;
@@ -131,6 +146,9 @@ export component WorkBench inherits Rectangle {
                 work_area.x = self.mouse-x - self.pressed-x + work_area.x;
                 work_area.y = self.mouse-y - self.pressed-y + work_area.y;
                 root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+            }
+            clicked => {
+                root.workbench_clicked();
             }
         }
 

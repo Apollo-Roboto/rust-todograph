@@ -45,6 +45,7 @@ component TaskBubble {
     in property <brush> doing_color: #2c1c74;
     in property <brush> done_color: #11572e;
     in property <bool> active: false;
+    out property <bool> dragged <=> dr.dragged;
     callback delete_clicked();
     callback state_change_clicked(state: MindTaskState);
     callback rename_clicked();
@@ -54,9 +55,12 @@ component TaskBubble {
     callback moved_by(x: length, y: length);
     // TODO: this isn't called
     callback clicked();
-    DragableRectangle {
+    dr := DragableRectangle {
         moved_by(x, y) => {
             root.moved_by(x, y);
+        }
+        clicked => {
+            root.clicked();
         }
         ContextMenuArea {
             Menu {
@@ -190,6 +194,14 @@ component TaskBubble {
                       : task.state == MindTaskState.Done ? done_color // 
                       : default_color;
                     active: root.active;
+                    drop-shadow-color: dragged ? #00000055 : #00000000;
+                    drop-shadow-blur: dragged ? 20px : 0px;
+                    drop-shadow-offset-x: 5px;
+                    drop-shadow-offset-y: 5px;
+                    animate drop-shadow-color, drop-shadow-blur, drop-shadow-offset-x, drop-shadow-offset-y {
+                        duration: 180ms;
+                        easing: ease-in-out;
+                    }
                 }
 
                 if extra_info:
@@ -290,6 +302,10 @@ export component AppWindow inherits Window {
         alignment: LayoutAlignment.stretch;
         workbench := WorkBench {
             debugging: true;
+            workbench_clicked => {
+                root.clear_active_task();
+                root.mode = AppMode.None;
+            }
             ContextMenuArea {
                 Menu {
                     MenuItem {
@@ -376,6 +392,11 @@ export component AppWindow inherits Window {
                 clicked => {
                     if root.mode == AppMode.SetParent {
                         root.set_parent_to_task(root.active_task, task.id);
+                        root.mode = AppMode.None;
+                        return;
+                    }
+                    if root.mode == AppMode.AddChildren {
+                        root.set_parent_to_task(task.id, root.active_task);
                         root.mode = AppMode.None;
                         return;
                     }
