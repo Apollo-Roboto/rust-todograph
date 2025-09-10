@@ -1,3 +1,4 @@
+pub mod commands;
 mod models;
 
 use std::collections::HashSet;
@@ -13,6 +14,7 @@ pub struct TaskManager {
     pub tasks: Vec<MindTask>,
     pub active: Option<u32>,
     pub selected: Vec<u32>,
+    id_counter: u32,
 }
 
 impl TaskManager {
@@ -31,10 +33,20 @@ impl TaskManager {
         // - if children doesn't exists, remove it
         // - if the current task is in doing, ensure the parent is also in doing
 
+        // find the last id for the counter
+        let mut last_id = 0;
+
+        tasks.iter().for_each(|t| {
+            if t.id > last_id {
+                last_id = t.id
+            }
+        });
+
         Ok(Self {
             tasks,
             active: None,
             selected: Vec::new(),
+            id_counter: last_id,
         })
     }
 
@@ -56,36 +68,47 @@ impl TaskManager {
         Ok(())
     }
 
-    /// Generate a unique id from the current list of tasks
-    pub fn generate_id(&self) -> u32 {
-        // find the lowest number that's free
-        for i in 0..u32::MAX {
-            if self.tasks.iter().any(|t| t.id == i) {
-                continue;
-            }
-            return i;
-        }
-        unreachable!();
+    /// Generate a unique id
+    pub fn generate_id(&mut self) -> u32 {
+        self.id_counter += 1;
+        self.id_counter
     }
 
-    pub fn set_parent(&mut self, task_id: u32, parent_id: u32) {
+    /// Set the parent of a task
+    /// Returns the previous parent
+    pub fn set_parent(&mut self, task_id: u32, parent_id: u32) -> Option<u32> {
         // todo check relationships
         // - no loops
         // - if parent doesn't exists, set parent to None
         // - if children doesn't exists, remove it
         // - if the current task is in doing, ensure the parent is also in doing
 
+        let mut previous_parent = None;
+
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
+            previous_parent = task.parent;
             task.parent = Some(parent_id);
         };
+
+        // remove children from previous parent
+        if let Some(previous_parent) = previous_parent
+            && previous_parent != parent_id
+        {
+            if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == previous_parent) {
+                parent.childrens.remove(&task_id);
+            };
+        }
 
         if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == parent_id) {
             parent.childrens.insert(task_id);
         };
+
+        previous_parent
     }
 
     /// Removes link to parent
-    pub fn unlink_parent(&mut self, task_id: u32) {
+    /// Returns the previous parent
+    pub fn unlink_parent(&mut self, task_id: u32) -> Option<u32> {
         let mut parent_id = None;
 
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
@@ -96,6 +119,8 @@ impl TaskManager {
         if let Some(parent) = self.tasks.iter_mut().find(|t| Some(t.id) == parent_id) {
             parent.childrens.remove(&task_id);
         };
+
+        parent_id
     }
 
     /// Removes link to childrens
@@ -125,29 +150,36 @@ impl TaskManager {
         }
     }
 
+    // Create a task and establishes it's relations
+    pub fn create_task(&mut self, task: MindTask) {
+        if let Some(parent_id) = task.parent {
+            self.set_parent(task.id, parent_id);
+        }
+        for child in task.childrens.iter() {
+            self.set_parent(*child, task.id);
+        }
+        self.tasks.push(task);
+    }
+
     /// Removes a task and break connections acordingly
-    pub fn remove_task(&mut self, task_id: u32) {
+    pub fn delete_task(&mut self, task_id: u32) {
         self.unlink_all(task_id);
 
         // remove from task list
-        if let Some(i) = self.tasks.iter().position(|t| t.id == task_id) {
-            self.tasks.remove(i);
+        if let Some(task) = self.tasks.iter().position(|t| t.id == task_id) {
+            self.tasks.remove(task);
         }
     }
 
     /// Set the task to doing and set parents to doing acordingly
-    pub fn set_task_state(&mut self, task_id: u32, state: MindTaskState) {
+    /// Returns the previous state
+    pub fn set_task_state(&mut self, task_id: u32, state: MindTaskState) -> MindTaskState {
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
+            let previous_state = task.state;
             task.state = state;
-
-            // if a children is started, the parent is also started
-            if let Some(parent_id) = task.parent
-                && (state == MindTaskState::Doing)
-            {
-                self.set_task_state(parent_id, MindTaskState::Doing);
-            }
-
-            // TODO: if a children is completed, the parent is started ONLY if not completed
+            previous_state
+        } else {
+            state
         }
     }
 

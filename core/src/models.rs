@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -50,6 +50,20 @@ impl MindTaskState {
             MindTaskState::Doing => MindTaskState::Todo,
             MindTaskState::Done => MindTaskState::Doing,
         }
+    }
+}
+
+impl Display for MindTaskState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MindTaskState::Todo => "Todo",
+                MindTaskState::Doing => "Doing",
+                MindTaskState::Done => "Done",
+            }
+        )
     }
 }
 

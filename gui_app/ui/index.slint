@@ -42,8 +42,8 @@ component TaskBubble {
     in property <bool> extra_info: true;
     in property <brush> default_color: #333333;
     in property <brush> todo_color: #333333;
-    in property <brush> doing_color: #2c1c74;
-    in property <brush> done_color: #11572e;
+    in property <brush> doing_color: #2b599c;
+    in property <brush> done_color: #186638;
     in property <bool> active: false;
     out property <bool> dragged <=> dr.dragged;
     callback delete_clicked();
@@ -53,7 +53,6 @@ component TaskBubble {
     callback remove_parent_clicked();
     callback add_children_clicked();
     callback moved_by(x: length, y: length);
-    // TODO: this isn't called
     callback clicked();
     dr := DragableRectangle {
         moved_by(x, y) => {
@@ -138,7 +137,6 @@ component TaskBubble {
                         }
 
                         clicked => {
-                            debug("State todo task " + task.id + " clicked");
                             root.state_change_clicked(MindTaskState.Todo);
                         }
                     }
@@ -151,7 +149,6 @@ component TaskBubble {
                         }
 
                         clicked => {
-                            debug("State doing task " + task.id + " clicked");
                             root.state_change_clicked(MindTaskState.Doing);
                         }
                     }
@@ -164,7 +161,6 @@ component TaskBubble {
                         }
 
                         clicked => {
-                            debug("State done task " + task.id + " clicked");
                             root.state_change_clicked(MindTaskState.Done);
                         }
                     }
@@ -177,11 +173,10 @@ component TaskBubble {
                         width: 16px;
                         height: 16px;
                         Rectangle {
-                            background: red;
+                            background: #ac372f;
                         }
 
                         clicked => {
-                            debug("Delete task " + task.id + " clicked");
                             root.delete_clicked();
                         }
                     }
@@ -284,16 +279,24 @@ export component AppWindow inherits Window {
     in-out property <int> active_task: -1;
     callback load(path: string);
     callback save(path: string);
-    callback add_task(title: string, x: length, y: length);
+    callback undo();
+    callback redo();
+    callback create_task(title: string, x: length, y: length);
     callback set_parent_to_task(id: int, parent: int);
     callback unset_parent_from_task(id: int);
     callback delete_task(id: int);
     callback change_state(id: int, state: MindTaskState);
     callback task_moved(id: int, x: length, y: length);
-    function clear_active_task() {
+    callback refresh_other();
+    callback refresh_edges();
+    public function refresh_all() {
+        root.refresh_other();
+        root.refresh_edges();
+    }
+    public function clear_active_task() {
         root.active_task = -1;
     }
-    function set_active_task(id: int) {
+    public function set_active_task(id: int) {
         root.active_task = id;
     }
     preferred-width: 600px;
@@ -311,7 +314,7 @@ export component AppWindow inherits Window {
                     MenuItem {
                         title: "New Task";
                         activated => {
-                            add_task("New Todo", 0px, 0px);
+                            create_task("New Task", 0px, 0px);
                         }
                     }
                 }
@@ -425,6 +428,12 @@ export component AppWindow inherits Window {
                 Text {
                     horizontal-stretch: 1;
                     horizontal-alignment: center;
+                    text: "History Past/Future: TODO/TODO";
+                }
+
+                Text {
+                    horizontal-stretch: 1;
+                    horizontal-alignment: center;
                     text: "Active Task: #" + root.active_task;
                 }
 
@@ -456,6 +465,29 @@ export component AppWindow inherits Window {
                     text: "Reset Mode";
                     clicked => {
                         root.mode = AppMode.None;
+                    }
+                }
+
+                Button {
+                    text: "Refresh All";
+                    clicked => {
+                        root.refresh_all();
+                    }
+                }
+
+                Button {
+                    // TODO: this should be disabled if there is no past commands
+                    text: "Undo";
+                    clicked => {
+                        root.undo();
+                    }
+                }
+
+                Button {
+                    // TODO: this should be disabled if there is no future commands
+                    text: "Redo";
+                    clicked => {
+                        root.redo();
                     }
                 }
 
