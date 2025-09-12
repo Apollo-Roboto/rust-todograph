@@ -6,7 +6,7 @@ use rust_firework_core::commands::{
     Command, CreateTaskCommand, DeleteTaskCommand, SetTaskParentCommand, SetTaskPositionCommand,
     SetTaskStateCommand, TaskCommandHistory,
 };
-use rust_firework_core::{MindTask, MindTaskState, Point, TaskManager};
+use rust_firework_core::{MindTask, MindTaskState, Point, TaskGraph};
 use slint::ComponentHandle;
 
 mod ui {
@@ -36,7 +36,7 @@ impl From<ui::MindTaskState> for MindTaskState {
 fn main() {
     let main_window = ui::AppWindow::new().unwrap();
 
-    let task_manager = Arc::new(Mutex::new(TaskManager::default()));
+    let task_manager = Arc::new(Mutex::new(TaskGraph::default()));
     let command_history = Arc::new(Mutex::new(TaskCommandHistory::default()));
 
     let main_window_weak = main_window.as_weak();
@@ -106,7 +106,7 @@ fn main() {
 
         main_window.set_task_loading_state(ui::TaskLoadingState::Loading);
 
-        *task_manager = TaskManager::load(&path).unwrap();
+        *task_manager = TaskGraph::load(&path).unwrap();
 
         // avoid deadlock from the next invoke
         std::mem::drop(task_manager);

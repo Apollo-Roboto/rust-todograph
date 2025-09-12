@@ -1,0 +1,11 @@
+export component Bubble inherits Rectangle {
+    in property <string> text <=> _text.text;
+    in property <length> horizontal_padding: 35px;
+    in property <length> vertical_padding: 20px;
+    height: _text.height + vertical_padding;
+    width: _text.width + horizontal_padding;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 16px;
+    _text := Text { }
+}

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use crate::commands::Command;
-use crate::commands::create_task::CreateTaskCommand;
-use crate::{MindTask, TaskManager};
+use crate::commands::CreateTaskCommand;
+use crate::{MindTask, TaskGraph};
 
 /// Delete a task
 #[derive(Debug, Clone)]
@@ -22,12 +22,12 @@ impl Display for DeleteTaskCommand {
     }
 }
 impl Command for DeleteTaskCommand {
-    fn execute(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         manager.delete_task(self.task_to_delete.id);
         Ok(())
     }
 
-    fn undo(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         let mut cmd = CreateTaskCommand::new(self.task_to_delete.clone());
         cmd.execute(manager)
     }

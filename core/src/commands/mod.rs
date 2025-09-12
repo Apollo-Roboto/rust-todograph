@@ -1,25 +1,31 @@
 use std::fmt::Display;
 
-use crate::TaskManager;
+use crate::TaskGraph;
 
-mod create_task;
-mod delete_task;
-mod set_task_parent;
-mod set_task_position;
-mod set_task_state;
+/// Utility macro to import and then reexport each commands, this makes less lines I guess
+macro_rules! import_commands {
+    ($( $mod:ident :: $command_struct:ident ),* $(,)? ) => {
+        $(
+            mod $mod;
+            pub use $mod::$command_struct;
+        )*
+    };
+}
 
-pub use create_task::CreateTaskCommand;
-pub use delete_task::DeleteTaskCommand;
-pub use set_task_parent::SetTaskParentCommand;
-pub use set_task_position::SetTaskPositionCommand;
-pub use set_task_state::SetTaskStateCommand;
+import_commands! {
+    create_task::CreateTaskCommand,
+    delete_task::DeleteTaskCommand,
+    set_task_parent::SetTaskParentCommand,
+    set_task_position::SetTaskPositionCommand,
+    set_task_state::SetTaskStateCommand,
+}
 
 pub trait Command: Display {
     /// Execute the command on the manager, returns an error message if failed
-    fn execute(&mut self, manager: &mut TaskManager) -> Result<(), String>;
+    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String>;
     /// Undo the command on the manager, allowing users to undo an action
     /// Returns an error message if failed
-    fn undo(&mut self, manager: &mut TaskManager) -> Result<(), String>;
+    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String>;
 }
 
 /// Executed command that lead to an error is not added to the history
@@ -58,7 +64,7 @@ impl TaskCommandHistory {
     pub fn execute(
         &mut self,
         mut cmd: Box<dyn Command>,
-        manager: &mut TaskManager,
+        manager: &mut TaskGraph,
     ) -> Result<(), String> {
         println!("Executing command {cmd}");
 
@@ -77,7 +83,7 @@ impl TaskCommandHistory {
     }
 
     /// Undo the last command
-    pub fn undo(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    pub fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         let Some(mut cmd) = self.past.pop() else {
             return Ok(());
         };
@@ -93,7 +99,7 @@ impl TaskCommandHistory {
     }
 
     /// Redo the last undo
-    pub fn redo(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    pub fn redo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         let Some(mut cmd) = self.future.pop() else {
             return Ok(());
         };
@@ -148,18 +154,18 @@ mod test {
         }
     }
     impl Command for MockCommand {
-        fn execute(&mut self, _manager: &mut TaskManager) -> Result<(), String> {
+        fn execute(&mut self, _manager: &mut TaskGraph) -> Result<(), String> {
             Ok(())
         }
 
-        fn undo(&mut self, _manager: &mut TaskManager) -> Result<(), String> {
+        fn undo(&mut self, _manager: &mut TaskGraph) -> Result<(), String> {
             Ok(())
         }
     }
 
     #[test]
     fn test_history_limit() {
-        let mut manager = TaskManager::default();
+        let mut manager = TaskGraph::default();
         let mut history = TaskCommandHistory::new_with_limit(3);
 
         history
@@ -191,7 +197,7 @@ mod test {
 
     #[test]
     fn test_history_simple() {
-        let mut manager = TaskManager::default();
+        let mut manager = TaskGraph::default();
         let mut history = TaskCommandHistory::default();
 
         assert_eq!(history.past.len(), 0);

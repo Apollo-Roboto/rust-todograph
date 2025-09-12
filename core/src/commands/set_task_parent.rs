@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::TaskManager;
+use crate::TaskGraph;
 use crate::commands::Command;
 
 /// Create a task
@@ -31,7 +31,7 @@ impl Display for SetTaskParentCommand {
     }
 }
 impl Command for SetTaskParentCommand {
-    fn execute(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         match self.parent_id {
             Some(parent_id) => {
                 self.previous_parent_id = Some(manager.set_parent(self.task_id, parent_id));
@@ -43,7 +43,7 @@ impl Command for SetTaskParentCommand {
         Ok(())
     }
 
-    fn undo(&mut self, manager: &mut TaskManager) -> Result<(), String> {
+    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
         if let Some(parent_id) = self.previous_parent_id {
             let mut cmd = SetTaskParentCommand::new(self.task_id, parent_id);
             cmd.execute(manager)

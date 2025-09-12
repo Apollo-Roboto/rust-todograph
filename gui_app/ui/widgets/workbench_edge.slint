@@ -1,0 +1,35 @@
+export component Edge inherits Rectangle {
+    in property <length> stroke_width: 1px;
+    in property <brush> stroke: red;
+    in property <length> from_x;
+    in property <length> from_y;
+    in property <length> to_x;
+    in property <length> to_y;
+    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (from_y - to_y) / 1px);
+
+    // dummy comment to unbreak the color highlight that bugs when an out property has a math formula
+    // still a little bugged
+    // ) => {
+
+    p := Path {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        viewbox-x: parent.x / 1px;
+        viewbox-y: parent.y / 1px;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: root.stroke;
+        stroke-width: root.stroke_width;
+        MoveTo {
+            x: (from_x + (p.width / 2)) / 1px;
+            y: (from_y + (p.height / 2)) / 1px;
+        }
+
+        LineTo {
+            x: (to_x + (p.width / 2)) / 1px;
+            y: (to_y + (p.height / 2)) / 1px;
+        }
+    }
+}

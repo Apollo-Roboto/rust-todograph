@@ -1,5 +1,8 @@
-import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
-import { WorkBench, DragableRectangle } from "workbench.slint";
+import { Button, VerticalBox, HorizontalBox, LineEdit, Palette } from "std-widgets.slint";
+import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
+import { Styles } from "styles.slint";
+import { Bubble } from "widgets/bubble.slint";
+import { Edge } from "widgets/workbench_edge.slint";
 
 enum MindTaskState {
     Todo,
@@ -23,27 +26,23 @@ struct MindEdge {
     to_y: length,
 }
 
-component Bubble inherits Rectangle {
-    in property <string> text <=> _text.text;
-    in property <length> horizontal_padding: 35px;
-    in property <length> vertical_padding: 20px;
-    in property <bool> active: false;
-    height: _text.height + vertical_padding;
-    width: _text.width + horizontal_padding;
-    border-width: 1px;
-    border-color: root.active ? orange : black;
-    border-radius: 16px;
-    background: #333333;
-    _text := Text { }
+enum TaskLoadingState {
+    None, Loading, Error,
+}
+enum TaskSavingState {
+    None, Saving, Error,
+}
+enum AppMode {
+    None, SetParent, AddChildren,
 }
 
 component TaskBubble {
     in property <MindTask> task;
     in property <bool> extra_info: true;
-    in property <brush> default_color: #333333;
-    in property <brush> todo_color: #333333;
-    in property <brush> doing_color: #2b599c;
-    in property <brush> done_color: #186638;
+    in property <brush> default_color: Styles.todo_color;
+    in property <brush> todo_color: Styles.todo_color;
+    in property <brush> doing_color: Styles.doing_color;
+    in property <brush> done_color: Styles.done_color;
     in property <bool> active: false;
     out property <bool> dragged <=> dr.dragged;
     callback delete_clicked();
@@ -173,7 +172,7 @@ component TaskBubble {
                         width: 16px;
                         height: 16px;
                         Rectangle {
-                            background: #ac372f;
+                            background: Styles.danger_color;
                         }
 
                         clicked => {
@@ -188,7 +187,7 @@ component TaskBubble {
                       : task.state == MindTaskState.Doing ? doing_color //
                       : task.state == MindTaskState.Done ? done_color // 
                       : default_color;
-                    active: root.active;
+                    border-color: root.active ? Styles.active_color : black;
                     drop-shadow-color: dragged ? #00000055 : #00000000;
                     drop-shadow-blur: dragged ? 20px : 0px;
                     drop-shadow-offset-x: 5px;
@@ -218,53 +217,6 @@ component TaskBubble {
             }
         }
     }
-}
-
-component Edge inherits Rectangle {
-    in property <length> stroke_width <=> p.stroke-width;
-    in property <brush> stroke <=> p.stroke;
-    in property <length> from_x;
-    in property <length> from_y;
-    in property <length> to_x;
-    in property <length> to_y;
-    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (from_y - to_y) / 1px);
-
-    // dummy comment to unbreak the color highlight that bugs when an out property has a math formula
-    // still a little bugged
-    // ) => {
-    //
-
-    p := Path {
-        x: 0;
-        y: 0;
-        width: parent.width;
-        height: parent.height;
-        viewbox-x: parent.x / 1px;
-        viewbox-y: parent.y / 1px;
-        viewbox-width: parent.width / 1px;
-        viewbox-height: parent.height / 1px;
-        stroke: red;
-        stroke-width: 3px;
-        MoveTo {
-            x: (from_x + (p.width / 2)) / 1px;
-            y: (from_y + (p.height / 2)) / 1px;
-        }
-
-        LineTo {
-            x: (to_x + (p.width / 2)) / 1px;
-            y: (to_y + (p.height / 2)) / 1px;
-        }
-    }
-}
-
-enum TaskLoadingState {
-    None, Loading, Error,
-}
-enum TaskSavingState {
-    None, Saving, Error,
-}
-enum AppMode {
-    None, SetParent, AddChildren,
 }
 
 export component AppWindow inherits Window {
@@ -305,6 +257,8 @@ export component AppWindow inherits Window {
         alignment: LayoutAlignment.stretch;
         workbench := WorkBench {
             debugging: true;
+            background: Styles.workbench_background_color;
+            background_detail_color: Styles.workbench_background_details_color;
             workbench_clicked => {
                 root.clear_active_task();
                 root.mode = AppMode.None;
@@ -322,7 +276,7 @@ export component AppWindow inherits Window {
 
             // place every edges
             for edge in edges: Edge {
-                stroke: #8c8cee7a;
+                stroke: Styles.edge_color;
                 stroke_width: 4px;
                 from_x: edge.from_x;
                 from_y: edge.from_y;
@@ -334,7 +288,7 @@ export component AppWindow inherits Window {
             if root.mode == AppMode.SetParent //
             || root.mode == AppMode.AddChildren:
             Edge {
-                stroke: #8c8cee7a;
+                stroke: Styles.edge_color;
                 stroke_width: 4px;
                 from_x: 0;
                 from_y: 0;
