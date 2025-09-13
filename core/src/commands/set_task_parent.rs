@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use crate::TaskGraph;
 use crate::commands::Command;
+use crate::editor::EditorState;
 
 /// Create a task
 #[derive(Debug, Clone)]
@@ -31,22 +31,22 @@ impl Display for SetTaskParentCommand {
     }
 }
 impl Command for SetTaskParentCommand {
-    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
         match self.parent_id {
             Some(parent_id) => {
-                self.previous_parent_id = Some(manager.set_parent(self.task_id, parent_id));
+                self.previous_parent_id = Some(editor.graph.set_parent(self.task_id, parent_id));
             }
             None => {
-                self.previous_parent_id = Some(manager.unlink_parent(self.task_id));
+                self.previous_parent_id = Some(editor.graph.unlink_parent(self.task_id));
             }
         }
         Ok(())
     }
 
-    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         if let Some(parent_id) = self.previous_parent_id {
             let mut cmd = SetTaskParentCommand::new(self.task_id, parent_id);
-            cmd.execute(manager)
+            cmd.execute(editor)
         } else {
             Ok(())
         }

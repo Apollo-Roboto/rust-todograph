@@ -4,9 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use rust_firework_core::commands::{
     Command, CreateTaskCommand, DeleteTaskCommand, SetTaskParentCommand, SetTaskPositionCommand,
-    SetTaskStateCommand, TaskCommandHistory,
+    SetTaskStateCommand,
 };
-use rust_firework_core::{MindTask, MindTaskState, Point, TaskGraph};
+use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
 use slint::ComponentHandle;
 
 mod ui {
@@ -36,19 +36,20 @@ impl From<ui::MindTaskState> for MindTaskState {
 fn main() {
     let main_window = ui::AppWindow::new().unwrap();
 
-    let task_manager = Arc::new(Mutex::new(TaskGraph::default()));
-    let command_history = Arc::new(Mutex::new(TaskCommandHistory::default()));
+    let editor = Arc::new(Mutex::new(Editor::default()));
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
+    let editor_clone = editor.clone();
     main_window.on_refresh_other(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
-        let task_manager = task_manager_clone.lock().unwrap();
+        let editor = editor_clone.lock().unwrap();
 
         // get the tasks
-        let tasks: Vec<ui::MindTask> = task_manager
+        let tasks: Vec<ui::MindTask> = editor
+            .state
+            .graph
             .tasks
             .iter()
             .map(|t| ui::MindTask {
@@ -57,25 +58,27 @@ fn main() {
                 title: t.title.clone().into(),
                 x: t.pos.x,
                 y: t.pos.y,
-                completion: task_manager.calc_progress(t.id).unwrap_or(0.0),
+                completion: editor.state.graph.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
 
         main_window.set_tasks(tasks_model.into());
-        main_window.set_overall_progress(task_manager.calc_progress_all().unwrap_or(0.0));
+        main_window.set_overall_progress(editor.state.graph.calc_progress_all().unwrap_or(0.0));
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
+    let editor_clone = editor.clone();
     main_window.on_refresh_edges(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
-        let task_manager = task_manager_clone.lock().unwrap();
+        let editor = editor_clone.lock().unwrap();
 
         // get the positions of the edges
-        let edges: Vec<ui::MindEdge> = task_manager
+        let edges: Vec<ui::MindEdge> = editor
+            .state
+            .graph
             .get_all_edges()
             .iter()
             .map(|(from, to)| ui::MindEdge {
@@ -91,39 +94,37 @@ fn main() {
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_load(move |path| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
         // no commands in the history is relevent after loading a project
-        command_history.clear();
+        editor.history.clear();
 
         main_window.set_task_loading_state(ui::TaskLoadingState::Loading);
 
-        *task_manager = TaskGraph::load(&path).unwrap();
+        editor.state.graph = TaskGraph::load(&path).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
+    let editor_clone = editor.clone();
     main_window.on_save(move |path| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let task_manager = task_manager_clone.lock().unwrap();
+        let editor = editor_clone.lock().unwrap();
 
-        match task_manager.save(&path) {
+        match editor.state.graph.save(&path) {
             Ok(_) => {
                 main_window.set_task_saving_state(ui::TaskSavingState::None);
             }
@@ -135,78 +136,74 @@ fn main() {
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_undo(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
 
-        command_history.undo(&mut task_manager).unwrap();
+        let mut editor = editor_clone.lock().unwrap();
+
+        editor.undo().unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_redo(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
-        command_history.redo(&mut task_manager).unwrap();
+        editor.redo().unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_delete_task(move |task_id| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
-        if let Some(task) = task_manager.tasks.iter().find(|t| t.id == task_id as u32) {
+        if let Some(task) = editor
+            .state
+            .graph
+            .tasks
+            .iter()
+            .find(|t| t.id == task_id as u32)
+        {
             let cmd = Box::new(DeleteTaskCommand::new(task.clone()));
-            command_history.execute(cmd, &mut task_manager).unwrap();
+            editor.execute(cmd).unwrap();
         }
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_create_task(move |title, x, y| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
-        let id = task_manager.generate_id();
+        let id = editor.state.graph.generate_id();
 
         let task = MindTask {
             id,
@@ -217,70 +214,61 @@ fn main() {
         };
 
         let cmd = Box::new(CreateTaskCommand::new(task));
-        command_history.execute(cmd, &mut task_manager).unwrap();
+        editor.execute(cmd).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_change_state(move |task_id, state| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
         let cmd = Box::new(SetTaskStateCommand::new(task_id as u32, state.into()));
-        command_history.execute(cmd, &mut task_manager).unwrap();
+        editor.execute(cmd).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_task_moved(move |task_id, x, y| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut _command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
         let mut cmd = Box::new(SetTaskPositionCommand::new(task_id as u32, Point { x, y }));
         // TODO: this is called too often, I need to save only when it was dropped into the command history
         // for now I'll just not have the movement in the history at all
         // command_history.execute(cmd, &mut task_manager).unwrap();
-        cmd.execute(&mut task_manager).unwrap();
+        cmd.execute(&mut editor.state).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(_command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_edges();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_set_parent_to_task(move |task_id, parent_id| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
         let Ok(task_id) = task_id.try_into() else {
             return;
@@ -290,32 +278,28 @@ fn main() {
         };
 
         let cmd = Box::new(SetTaskParentCommand::new(task_id, Some(parent_id)));
-        command_history.execute(cmd, &mut task_manager).unwrap();
+        editor.execute(cmd).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });
 
     let main_window_weak = main_window.as_weak();
-    let task_manager_clone = task_manager.clone();
-    let command_history_clone = command_history.clone();
+    let editor_clone = editor.clone();
     main_window.on_unset_parent_from_task(move |task_id| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
-        let mut task_manager = task_manager_clone.lock().unwrap();
-        let mut command_history = command_history_clone.lock().unwrap();
+        let mut editor = editor_clone.lock().unwrap();
 
         let cmd = Box::new(SetTaskParentCommand::new(task_id as u32, None));
-        command_history.execute(cmd, &mut task_manager).unwrap();
+        editor.execute(cmd).unwrap();
 
         // avoid deadlock from the next invoke
-        std::mem::drop(task_manager);
-        std::mem::drop(command_history);
+        std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
     });

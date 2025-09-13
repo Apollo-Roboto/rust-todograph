@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
+use crate::MindTaskState;
 use crate::commands::Command;
-use crate::{MindTaskState, TaskGraph};
+use crate::editor::EditorState;
 
 /// Set the state of a task
 #[derive(Debug, Clone)]
@@ -29,16 +30,16 @@ impl Display for SetTaskStateCommand {
     }
 }
 impl Command for SetTaskStateCommand {
-    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
         // TODO: If the previous state is the same, I do not want to keep it on the history
-        self.previous_state = Some(manager.set_task_state(self.task_id, self.state_to_set));
+        self.previous_state = Some(editor.graph.set_task_state(self.task_id, self.state_to_set));
         Ok(())
     }
 
-    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         if let Some(previous_state) = self.previous_state {
             let mut cmd = SetTaskStateCommand::new(self.task_id, previous_state);
-            cmd.execute(manager)
+            cmd.execute(editor)
         } else {
             Ok(())
         }

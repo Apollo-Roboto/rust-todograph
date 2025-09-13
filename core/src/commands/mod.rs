@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::TaskGraph;
+use crate::editor::EditorState;
 
 /// Utility macro to import and then reexport each commands, this makes less lines I guess
 macro_rules! import_commands {
@@ -18,23 +18,24 @@ import_commands! {
     set_task_parent::SetTaskParentCommand,
     set_task_position::SetTaskPositionCommand,
     set_task_state::SetTaskStateCommand,
+    set_task_active::SetTaskActiveCommand,
 }
 
 pub trait Command: Display {
-    /// Execute the command on the manager, returns an error message if failed
-    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String>;
-    /// Undo the command on the manager, allowing users to undo an action
+    /// Execute the command on the editor, returns an error message if failed
+    fn execute(&mut self, editor: &mut EditorState) -> Result<(), String>;
+    /// Undo the command on the editor, allowing users to undo an action
     /// Returns an error message if failed
-    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String>;
+    fn undo(&mut self, editor: &mut EditorState) -> Result<(), String>;
 }
 
 /// Executed command that lead to an error is not added to the history
-pub struct TaskCommandHistory {
+pub struct EditorCommandHistory {
     past: Vec<Box<dyn Command>>,
     future: Vec<Box<dyn Command>>,
     limit: usize,
 }
-impl Default for TaskCommandHistory {
+impl Default for EditorCommandHistory {
     fn default() -> Self {
         let limit = 20;
         Self {
@@ -44,7 +45,7 @@ impl Default for TaskCommandHistory {
         }
     }
 }
-impl TaskCommandHistory {
+impl EditorCommandHistory {
     // Create a new command history with a specific limit
     pub fn new_with_limit(limit: usize) -> Self {
         Self {
@@ -64,11 +65,11 @@ impl TaskCommandHistory {
     pub fn execute(
         &mut self,
         mut cmd: Box<dyn Command>,
-        manager: &mut TaskGraph,
+        editor: &mut EditorState,
     ) -> Result<(), String> {
         println!("Executing command {cmd}");
 
-        cmd.execute(manager)?;
+        cmd.execute(editor)?;
 
         if self.past.len() >= self.limit {
             self.past.remove(0);
@@ -83,14 +84,14 @@ impl TaskCommandHistory {
     }
 
     /// Undo the last command
-    pub fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    pub fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         let Some(mut cmd) = self.past.pop() else {
             return Ok(());
         };
 
         println!("Undoing command {cmd}");
 
-        cmd.undo(manager)?;
+        cmd.undo(editor)?;
 
         // added to the future so it can be redone
         self.future.push(cmd);
@@ -99,14 +100,14 @@ impl TaskCommandHistory {
     }
 
     /// Redo the last undo
-    pub fn redo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    pub fn redo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         let Some(mut cmd) = self.future.pop() else {
             return Ok(());
         };
 
         println!("Redoing command {cmd}");
 
-        cmd.execute(manager)?;
+        cmd.execute(editor)?;
 
         if self.past.len() >= self.limit {
             self.past.remove(0);
@@ -116,27 +117,27 @@ impl TaskCommandHistory {
         Ok(())
     }
 
-    /// get the limit of the history
+    /// Get the limit of the history
     pub fn limit(&self) -> usize {
         self.limit
     }
 
-    /// get the past commands
+    /// Get the past commands
     pub fn past(&self) -> impl Iterator<Item = &dyn Command> {
         self.past.iter().map(|c| c.as_ref())
     }
 
-    /// get the future commands
+    /// Get the future commands
     pub fn future(&self) -> impl Iterator<Item = &dyn Command> {
         self.future.iter().map(|c| c.as_ref())
     }
 
-    /// get the last command executed
+    /// Get the last command executed (called at undo)
     pub fn last(&self) -> Option<&dyn Command> {
         self.past.last().map(|v| &**v)
     }
 
-    /// get the next command to be executed
+    /// Get the next command to be executed (called at redo)
     pub fn next(&self) -> Option<&dyn Command> {
         self.future.first().map(|v| &**v)
     }
@@ -144,6 +145,8 @@ impl TaskCommandHistory {
 
 #[cfg(test)]
 mod test {
+    use crate::Editor;
+
     use super::*;
 
     #[derive(Debug, Default)]
@@ -154,42 +157,28 @@ mod test {
         }
     }
     impl Command for MockCommand {
-        fn execute(&mut self, _manager: &mut TaskGraph) -> Result<(), String> {
+        fn execute(&mut self, _editor: &mut EditorState) -> Result<(), String> {
             Ok(())
         }
 
-        fn undo(&mut self, _manager: &mut TaskGraph) -> Result<(), String> {
+        fn undo(&mut self, _editor: &mut EditorState) -> Result<(), String> {
             Ok(())
         }
     }
 
     #[test]
     fn test_history_limit() {
-        let mut manager = TaskGraph::default();
-        let mut history = TaskCommandHistory::new_with_limit(3);
+        let mut editor = Editor::default().state;
+        let mut history = EditorCommandHistory::new_with_limit(3);
 
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
         // calls beyond here should discard old commands
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
 
         assert_eq!(history.past.len(), 3);
         assert_eq!(history.future.len(), 0);
@@ -197,51 +186,43 @@ mod test {
 
     #[test]
     fn test_history_simple() {
-        let mut manager = TaskGraph::default();
-        let mut history = TaskCommandHistory::default();
+        let mut editor = Editor::default().state;
+        let mut history = EditorCommandHistory::default();
 
         assert_eq!(history.past.len(), 0);
         assert_eq!(history.future.len(), 0);
 
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
 
         assert_eq!(history.past.len(), 1);
         assert_eq!(history.future.len(), 0);
 
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
 
         assert_eq!(history.past.len(), 2);
         assert_eq!(history.future.len(), 0);
 
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
 
         assert_eq!(history.past.len(), 3);
         assert_eq!(history.future.len(), 0);
 
-        history.undo(&mut manager).unwrap();
+        history.undo(&mut editor).unwrap();
 
         assert_eq!(history.past.len(), 2);
         assert_eq!(history.future.len(), 1);
 
-        history.undo(&mut manager).unwrap();
+        history.undo(&mut editor).unwrap();
 
         assert_eq!(history.past.len(), 1);
         assert_eq!(history.future.len(), 2);
 
-        history.redo(&mut manager).unwrap();
+        history.redo(&mut editor).unwrap();
 
         assert_eq!(history.past.len(), 2);
         assert_eq!(history.future.len(), 1);
 
-        history
-            .execute(Box::new(MockCommand), &mut manager)
-            .unwrap();
+        history.execute(Box::new(MockCommand), &mut editor).unwrap();
 
         assert_eq!(history.past.len(), 3);
         assert_eq!(history.future.len(), 0);

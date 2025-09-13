@@ -87,10 +87,9 @@ impl TaskGraph {
         // remove children from previous parent
         if let Some(previous_parent) = previous_parent
             && previous_parent != parent_id
+            && let Some(parent) = self.tasks.iter_mut().find(|t| t.id == previous_parent)
         {
-            if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == previous_parent) {
-                parent.childrens.remove(&task_id);
-            };
+            parent.childrens.remove(&task_id);
         }
 
         if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == parent_id) {

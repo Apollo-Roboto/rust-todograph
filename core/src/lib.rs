@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod editor;
 pub mod graph;
 mod models;
 

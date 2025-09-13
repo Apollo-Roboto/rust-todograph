@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
+use crate::Point;
 use crate::commands::Command;
-use crate::{Point, TaskGraph};
+use crate::editor::EditorState;
 
 /// Create a task
 #[derive(Debug, Clone)]
@@ -25,12 +26,8 @@ impl Display for SetTaskPositionCommand {
     }
 }
 impl Command for SetTaskPositionCommand {
-    fn execute(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
-        if let Some(task) = manager
-            .tasks
-            .iter_mut()
-            .find(|t| t.id == self.task_id as u32)
-        {
+    fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
+        if let Some(task) = editor.graph.tasks.iter_mut().find(|t| t.id == self.task_id) {
             self.previous_pos = Some(task.pos);
             task.pos = self.pos;
         }
@@ -38,10 +35,10 @@ impl Command for SetTaskPositionCommand {
         Ok(())
     }
 
-    fn undo(&mut self, manager: &mut TaskGraph) -> Result<(), String> {
+    fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         if let Some(pos) = self.previous_pos {
             let mut cmd = SetTaskPositionCommand::new(self.task_id, pos);
-            cmd.execute(manager)
+            cmd.execute(editor)
         } else {
             Ok(())
         }
