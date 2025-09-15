@@ -4,7 +4,7 @@ use crate::Point;
 use crate::commands::Command;
 use crate::editor::EditorState;
 
-/// Create a task
+/// Set the position of a task
 #[derive(Debug, Clone)]
 pub struct SetTaskPositionCommand {
     task_id: u32,

@@ -35,14 +35,37 @@ pub struct Editor {
 }
 impl Editor {
     pub fn execute(&mut self, cmd: Box<dyn Command>) -> Result<(), String> {
-        self.history.execute(cmd, &mut self.state)
+        // TODO this should probably not silently fail
+        match self.history.execute(cmd, &mut self.state) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Command execution error: {e}");
+            }
+        }
+
+        Ok(())
     }
 
     pub fn undo(&mut self) -> Result<(), String> {
-        self.history.undo(&mut self.state)
+        // TODO this should probably not silently fail
+        match self.history.undo(&mut self.state) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Command undo error: {e}");
+            }
+        }
+        Ok(())
     }
 
     pub fn redo(&mut self) -> Result<(), String> {
-        self.history.redo(&mut self.state)
+        // TODO this should probably not silently fail
+        match self.history.redo(&mut self.state) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Command redo error: {e}");
+            }
+        }
+
+        Ok(())
     }
 }

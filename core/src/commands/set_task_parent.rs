@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::commands::Command;
 use crate::editor::EditorState;
 
-/// Create a task
+/// Set task parent
 #[derive(Debug, Clone)]
 pub struct SetTaskParentCommand {
     task_id: u32,

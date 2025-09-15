@@ -13,12 +13,14 @@ macro_rules! import_commands {
 }
 
 import_commands! {
+    clear_task_active::ClearTaskActiveCommand,
     create_task::CreateTaskCommand,
     delete_task::DeleteTaskCommand,
+    set_task_active::SetTaskActiveCommand,
     set_task_parent::SetTaskParentCommand,
     set_task_position::SetTaskPositionCommand,
     set_task_state::SetTaskStateCommand,
-    set_task_active::SetTaskActiveCommand,
+    set_task_title::SetTaskTitleCommand,
 }
 
 pub trait Command: Display {

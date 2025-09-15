@@ -1,23 +1,10 @@
-import { Button, VerticalBox, HorizontalBox, LineEdit, Palette } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, LineEdit, Palette, TextEdit } from "std-widgets.slint";
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
 import { Styles } from "styles.slint";
+import { MindTask, MindTaskState } from "models.slint";
 import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
-
-enum MindTaskState {
-    Todo,
-    Doing,
-    Done,
-}
-
-struct MindTask {
-    id: int,
-    title: string,
-    state: MindTaskState,
-    x: length,
-    y: length,
-    completion: float,
-}
+import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 
 struct MindEdge {
     from_x: length,
@@ -36,6 +23,7 @@ enum AppMode {
     None, SetParent, AddChildren,
 }
 
+/// TODO add a progress bar that starts and expends from the middle
 component TaskBubble {
     in property <MindTask> task;
     in property <bool> extra_info: true;
@@ -47,7 +35,6 @@ component TaskBubble {
     out property <bool> dragged <=> dr.dragged;
     callback delete_clicked();
     callback state_change_clicked(state: MindTaskState);
-    callback rename_clicked();
     callback set_parent_clicked();
     callback remove_parent_clicked();
     callback add_children_clicked();
@@ -62,13 +49,6 @@ component TaskBubble {
         }
         ContextMenuArea {
             Menu {
-                MenuItem {
-                    title: "Rename";
-                    activated => {
-                        root.rename_clicked();
-                    }
-                }
-
                 Menu {
                     title: "Set State";
                     MenuItem {
@@ -199,7 +179,7 @@ component TaskBubble {
                 }
 
                 if extra_info:
-            HorizontalLayout {
+                HorizontalLayout {
                     Text {
                         font-family: "Consolas";
                         text: Math.round(task.completion * 100) + "%";
@@ -228,7 +208,8 @@ export component AppWindow inherits Window {
     in property <string> task_saving_error_message;
     in property <float> overall_progress: 0.0;
     out property <AppMode> mode: AppMode.None;
-    in-out property <int> active_task: -1;
+    in property <MindTask> active_task;
+    in property <bool> has_active_task: false;
     callback load(path: string);
     callback save(path: string);
     callback undo();
@@ -241,128 +222,143 @@ export component AppWindow inherits Window {
     callback task_moved(id: int, x: length, y: length);
     callback refresh_other();
     callback refresh_edges();
+    callback rename_task(id: int, title: string);
+    callback set_active_task(id: int);
+    callback clear_active_task();
     public function refresh_all() {
         root.refresh_other();
         root.refresh_edges();
     }
-    public function clear_active_task() {
-        root.active_task = -1;
-    }
-    public function set_active_task(id: int) {
-        root.active_task = id;
-    }
     preferred-width: 600px;
     preferred-height: 600px;
     VerticalBox {
-        alignment: LayoutAlignment.stretch;
-        workbench := WorkBench {
-            debugging: true;
-            background: Styles.workbench_background_color;
-            background_detail_color: Styles.workbench_background_details_color;
-            workbench_clicked => {
-                root.clear_active_task();
-                root.mode = AppMode.None;
-            }
-            ContextMenuArea {
-                Menu {
-                    MenuItem {
-                        title: "New Task";
-                        activated => {
-                            create_task("New Task", 0px, 0px);
+        HorizontalBox {
+            padding: 0;
+            alignment: stretch;
+            workbench := WorkBench {
+                horizontal-stretch: 1;
+                debugging: true;
+                background: Styles.workbench_background_color;
+                background_detail_color: Styles.workbench_background_details_color;
+                workbench_clicked => {
+                    root.clear_active_task();
+                    root.mode = AppMode.None;
+                }
+                ContextMenuArea {
+                    Menu {
+                        MenuItem {
+                            title: "New Task";
+                            activated => {
+                                create_task("New Task", 0px, 0px);
+                            }
                         }
                     }
                 }
-            }
 
-            // place every edges
-            for edge in edges: Edge {
-                stroke: Styles.edge_color;
-                stroke_width: 4px;
-                from_x: edge.from_x;
-                from_y: edge.from_y;
-                to_x: edge.to_x;
-                to_y: edge.to_y;
-            }
+                // place every edges
+                for edge in edges: Edge {
+                    stroke: Styles.edge_color;
+                    stroke_width: 4px;
+                    from_x: edge.from_x;
+                    from_y: edge.from_y;
+                    to_x: edge.to_x;
+                    to_y: edge.to_y;
+                }
 
-            // TODO: add a line from the active task to the cursor
-            if root.mode == AppMode.SetParent //
-            || root.mode == AppMode.AddChildren:
-            Edge {
-                stroke: Styles.edge_color;
-                stroke_width: 4px;
-                from_x: 0;
-                from_y: 0;
-                to_x: workbench.center_x;
-                to_y: workbench.center_y;
-            }
+                // TODO: add a line from the active task to the cursor
+                if root.mode == AppMode.SetParent //
+                || root.mode == AppMode.AddChildren:
+                Edge {
+                    stroke: Styles.edge_color;
+                    stroke_width: 4px;
+                    from_x: 0;
+                    from_y: 0;
+                    to_x: workbench.center_x;
+                    to_y: workbench.center_y;
+                }
 
 
-            // temp bubble
-            // bubble_b := TaskBubble {
-            //     x: workbench.center_x + self.task.x - self.width / 2;
-            //     y: workbench.center_y + self.task.y - self.height / 2;
-            //     active: false;
-            //     task: {
-            //         id: 55,
-            //         title: "Meow Meow Meow",
-            //         x: 123px,
-            //         y: 123px,
-            //     };
-            //     moved_by(x, y) => {
-            //         self.task.x = x + self.task.x;
-            //         self.task.y = y + self.task.y;
-            //     }
-            // }
+                // temp bubble
+                // bubble_b := TaskBubble {
+                //     x: workbench.center_x + self.task.x - self.width / 2;
+                //     y: workbench.center_y + self.task.y - self.height / 2;
+                //     active: false;
+                //     task: {
+                //         id: 55,
+                //         title: "Meow Meow Meow",
+                //         x: 123px,
+                //         y: 123px,
+                //     };
+                //     moved_by(x, y) => {
+                //         self.task.x = x + self.task.x;
+                //         self.task.y = y + self.task.y;
+                //     }
+                // }
 
-            // place every tasks
-            for task in tasks: TaskBubble {
-                x: workbench.center_x + task.x - self.width / 2;
-                y: workbench.center_y + task.y - self.height / 2;
-                task: task;
-                active: root.active_task == task.id;
-                moved_by(x, y) => {
-                    task.x = x + task.x;
-                    task.y = y + task.y;
-                    root.task_moved(task.id, task.x, task.y);
-                }
-                rename_clicked => {
-                    //
-                }
-                delete_clicked() => {
-                    root.delete_task(task.id);
-                    root.clear_active_task();
-                }
-                state_change_clicked(state) => {
-                    root.change_state(task.id, state)
-                }
-                set_parent_clicked => {
-                    root.set_active_task(task.id);
-                    root.mode = AppMode.SetParent;
-                }
-                remove_parent_clicked => {
-                    root.unset_parent_from_task(task.id);
-                }
-                add_children_clicked => {
-                    root.set_active_task(task.id);
-                    root.mode = AppMode.AddChildren;
-                }
-                clicked => {
-                    if root.mode == AppMode.SetParent {
-                        root.set_parent_to_task(root.active_task, task.id);
-                        root.mode = AppMode.None;
-                        return;
+                // place every tasks
+                for task in tasks: TaskBubble {
+                    x: workbench.center_x + task.x - self.width / 2;
+                    y: workbench.center_y + task.y - self.height / 2;
+                    task: task;
+                    active: root.has_active_task && root.active_task.id == task.id;
+                    moved_by(x, y) => {
+                        task.x = x + task.x;
+                        task.y = y + task.y;
+                        root.task_moved(task.id, task.x, task.y);
                     }
-                    if root.mode == AppMode.AddChildren {
-                        root.set_parent_to_task(task.id, root.active_task);
-                        root.mode = AppMode.None;
-                        return;
+                    delete_clicked() => {
+                        root.delete_task(task.id);
+                        root.clear_active_task();
                     }
-                    root.set_active_task(task.id);
+                    state_change_clicked(state) => {
+                        root.change_state(task.id, state)
+                    }
+                    set_parent_clicked => {
+                        root.set_active_task(task.id);
+                        root.mode = AppMode.SetParent;
+                    }
+                    remove_parent_clicked => {
+                        root.unset_parent_from_task(task.id);
+                    }
+                    add_children_clicked => {
+                        root.set_active_task(task.id);
+                        root.mode = AppMode.AddChildren;
+                    }
+                    clicked => {
+                        if root.mode == AppMode.SetParent {
+                            root.set_parent_to_task(root.active_task.id, task.id);
+                            root.mode = AppMode.None;
+                            return;
+                        }
+                        if root.mode == AppMode.AddChildren {
+                            root.set_parent_to_task(task.id, root.active_task.id);
+                            root.mode = AppMode.None;
+                            return;
+                        }
+                        root.set_active_task(task.id);
+                    }
+                }
+            }
+
+            if root.has_active_task:
+            TaskDetailPanel {
+                task: root.active_task;
+                delete_clicked => {
+                    root.delete_task(root.active_task.id);
+                }
+                title_changed(title) => {
+                    root.rename_task(root.active_task.id, title);
+                }
+                description_changed(description) => {
+                    // root.TODO(root.active_task.id, description);
+                    debug("Not implemented yet");
+                }
+                state_changed(state) => {
+                    root.change_state(root.active_task.id, state);
+                    // todo: The task doesn't seem to be refreshed in the detail panel
                 }
             }
         }
-        
-    
 
         // button controls
         VerticalLayout {
@@ -388,7 +384,9 @@ export component AppWindow inherits Window {
                 Text {
                     horizontal-stretch: 1;
                     horizontal-alignment: center;
-                    text: "Active Task: #" + root.active_task;
+                    text: root.has_active_task //
+                        ? "Active Task: #" + root.active_task.id //
+                        : "Active Task: None";
                 }
 
                 Text {

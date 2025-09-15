@@ -1,0 +1,117 @@
+import { VerticalBox, HorizontalBox, LineEdit, Button, TextEdit, ComboBox } from "std-widgets.slint";
+import { MindTask, MindTaskState } from "../models.slint";
+import { Styles } from "../styles.slint";
+
+component StateButton inherits Rectangle {
+    in property <bool> active: true;
+    in property <MindTaskState> state;
+    callback clicked();
+    height: 35px;
+    opacity: active ? 100% : 50%;
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    border-radius: 4px;
+    background: Styles.color_from_state(root.state);
+    TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    Text {
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        text: state == MindTaskState.Todo ? "Todo" //
+            : state == MindTaskState.Doing ? "Doing" //
+            : state == MindTaskState.Done ? "Done" //
+            : "AAAAAAAA";
+    }
+}
+
+export component TaskDetailPanel inherits Rectangle {
+    in property <MindTask> task;
+    callback title_changed(string);
+    callback description_changed(string);
+    callback state_changed(MindTaskState);
+    callback delete_clicked();
+    VerticalBox {
+        padding: 0;
+        alignment: stretch;
+        HorizontalBox {
+            padding: 0;
+            Text {
+                vertical-alignment: center;
+                text: "Title";
+            }
+
+            LineEdit {
+                text: task.title;
+                accepted(text) => {
+                    root.title_changed(text);
+                }
+            }
+        }
+
+        HorizontalBox {
+            padding: 0;
+            // TODO: might change this to a simple combo box
+            StateButton {
+                state: MindTaskState.Todo;
+                active: root.task.state == MindTaskState.Todo;
+                clicked => {
+                    root.state_changed(MindTaskState.Todo);
+                }
+            }
+
+            StateButton {
+                state: MindTaskState.Doing;
+                active: root.task.state == MindTaskState.Doing;
+                clicked => {
+                    root.state_changed(MindTaskState.Doing);
+                }
+            }
+
+            StateButton {
+                state: MindTaskState.Done;
+                active: root.task.state == MindTaskState.Done;
+                clicked => {
+                    root.state_changed(MindTaskState.Done);
+                }
+            }
+        }
+
+        Text {
+            text: "Description:";
+        }
+
+        TextEdit {
+            vertical-stretch: 1;
+            // TODO: text: task.description;
+        }
+
+        Text {
+            text: root.task.parent == -1 //
+                ? "Parent: None" //
+                : "Parent: " + root.task.parent;
+        }
+
+        Text {
+            text: "Position: (" + root.task.x / 1px + ", " + root.task.y / 1px + ")";
+        }
+
+        Text {
+            text: "Completion: " + Math.round(root.task.completion * 100) + "%";
+        }
+
+        HorizontalBox {
+            padding: 0;
+            alignment: end;
+            Button {
+                text: "Delete";
+                clicked => {
+                    root.delete_clicked();
+                }
+            }
+        }
+    }
+}

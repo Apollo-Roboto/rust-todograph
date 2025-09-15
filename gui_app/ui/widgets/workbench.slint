@@ -146,6 +146,7 @@ export component WorkBench inherits Rectangle {
                 root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
             }
             clicked => {
+                // TODO: this should not be called if the user was dragging the workbench
                 root.workbench_clicked();
             }
         }
