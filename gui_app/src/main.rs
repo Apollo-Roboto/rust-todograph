@@ -2,10 +2,6 @@
 
 use std::sync::{Arc, Mutex};
 
-// use rust_firework_core::commands::{
-//     ClearTaskActiveCommand, Command, CreateTaskCommand, DeleteTaskCommand, SetTaskActiveCommand,
-//     SetTaskParentCommand, SetTaskPositionCommand, SetTaskStateCommand, SetTaskTitleCommand,
-// };
 use rust_firework_core::commands;
 use rust_firework_core::commands::Command;
 use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
@@ -61,6 +57,10 @@ fn main() {
                 x: t.pos.x,
                 y: t.pos.y,
                 parent: t.parent.map_or(-1, |id| id as i32),
+                childrens: std::rc::Rc::new(slint::VecModel::from_iter(
+                    t.childrens.iter().map(|id| *id as i32),
+                ))
+                .into(),
                 completion: editor.state.graph.calc_progress(t.id).unwrap_or(0.0),
             })
             .collect();
@@ -82,6 +82,10 @@ fn main() {
                 x: active_task.pos.x,
                 y: active_task.pos.y,
                 parent: active_task.parent.map_or(-1, |id| id as i32),
+                childrens: std::rc::Rc::new(slint::VecModel::from_iter(
+                    active_task.childrens.iter().map(|id| *id as i32),
+                ))
+                .into(),
                 completion: editor
                     .state
                     .graph
@@ -255,6 +259,35 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
+    main_window.on_create_task_with_parent(move |parent_id, title, x, y| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+
+        let mut editor = editor_clone.lock().unwrap();
+
+        let id = editor.state.graph.generate_id();
+
+        let task = MindTask {
+            id,
+            pos: Point { x, y },
+            title: title.into(),
+            parent: Some(parent_id as u32),
+            creation_date: chrono::Utc::now(),
+            ..Default::default()
+        };
+
+        let cmd = Box::new(commands::CreateTaskCommand::new(task));
+        editor.execute(cmd).unwrap();
+
+        // avoid deadlock from the next invoke
+        std::mem::drop(editor);
+
+        main_window.invoke_refresh_all();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
     main_window.on_change_state(move |task_id, state| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
@@ -395,6 +428,10 @@ fn main() {
             x: task.pos.x,
             y: task.pos.y,
             parent: task.parent.map_or(-1, |id| id as i32),
+            childrens: std::rc::Rc::new(slint::VecModel::from_iter(
+                task.childrens.iter().map(|id| *id as i32),
+            ))
+            .into(),
             completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
         };
 

@@ -79,6 +79,8 @@ pub struct MindTask {
     pub state: MindTaskState,
     /// when was this item created
     pub creation_date: chrono::DateTime<chrono::Utc>,
+    /// when was this item completed
+    pub completion_date: Option<chrono::DateTime<chrono::Utc>>,
     /// linked parent task if any, parent should contain this task's id as children
     pub parent: Option<u32>,
     /// linked children tasks if any, children should contain this tasks's id as parent

@@ -38,6 +38,7 @@ component TaskBubble {
     callback set_parent_clicked();
     callback remove_parent_clicked();
     callback add_children_clicked();
+    callback new_children_clicked();
     callback moved_by(x: length, y: length);
     callback clicked();
     dr := DragableRectangle {
@@ -93,6 +94,15 @@ component TaskBubble {
                     title: "Add Child";
                     activated => {
                         root.add_children_clicked();
+                    }
+                }
+
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "New Child";
+                    activated => {
+                        root.new_children_clicked();
                     }
                 }
 
@@ -215,6 +225,7 @@ export component AppWindow inherits Window {
     callback undo();
     callback redo();
     callback create_task(title: string, x: length, y: length);
+    callback create_task_with_parent(parent_id: int, title: string, x: length, y: length);
     callback set_parent_to_task(id: int, parent: int);
     callback unset_parent_from_task(id: int);
     callback delete_task(id: int);
@@ -323,6 +334,9 @@ export component AppWindow inherits Window {
                     add_children_clicked => {
                         root.set_active_task(task.id);
                         root.mode = AppMode.AddChildren;
+                    }
+                    new_children_clicked => {
+                        root.create_task_with_parent(task.id, "New Task", 0, 0);
                     }
                     clicked => {
                         if root.mode == AppMode.SetParent {

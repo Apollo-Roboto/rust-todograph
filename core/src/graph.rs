@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::path::Path;
 
+use chrono::Utc;
+
 pub use crate::models::*;
 
 // TODO: Experiment with Petgraph
@@ -169,12 +171,17 @@ impl TaskGraph {
         }
     }
 
-    /// Set the task to doing and set parents to doing acordingly
+    /// Set the task to doing
     /// Returns the previous state
     pub fn set_task_state(&mut self, task_id: u32, state: MindTaskState) -> MindTaskState {
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
             let previous_state = task.state;
             task.state = state;
+            if let MindTaskState::Done = state {
+                task.completion_date = Some(Utc::now());
+            } else {
+                task.completion_date = None;
+            }
             previous_state
         } else {
             state

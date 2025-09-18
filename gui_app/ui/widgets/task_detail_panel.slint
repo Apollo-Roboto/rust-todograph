@@ -89,10 +89,31 @@ export component TaskDetailPanel inherits Rectangle {
             // TODO: text: task.description;
         }
 
-        Text {
-            text: root.task.parent == -1 //
-                ? "Parent: None" //
-                : "Parent: " + root.task.parent;
+        // Text {
+        //     text: "Created: " + root.task.creation_date;
+        // }
+
+        // Text {
+        //     text: root.task.has_completion_date //
+        //         ? "Completed: None" //
+        //         : "Completed: " + root.task.completion_date;
+        // }
+
+        HorizontalBox {
+            alignment: stretch;
+            Text {
+                text: root.task.parent == -1 //
+                    ? "Parent: None" //
+                    : "Parent: #" + root.task.parent;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            Text {
+                text: "Num of childrens: " + root.task.childrens.length;
+            }
         }
 
         Text {
