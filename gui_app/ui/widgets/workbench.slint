@@ -5,17 +5,16 @@ export component DragableRectangle inherits Rectangle {
     TouchArea {
         moved => {
             root.dragged = true;
-            moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
-            // moved shouldn't call clicked
+            root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
         }
         clicked => {
-            if dragged == false {
+            if root.dragged == false {
                 root.clicked();
             }
         }
         pointer-event(event) => {
             if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
-                dragged = false;
+                root.dragged = false;
             }
         }
     }
@@ -114,6 +113,7 @@ export component WorkBench inherits Rectangle {
     in property <brush> background_detail_color: #ffffff;
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
+    out property <bool> dragged: false;
     callback moved_by(x: length, y: length);
     callback workbench_clicked();
     clip: true;
@@ -141,19 +141,26 @@ export component WorkBench inherits Rectangle {
 
         TouchArea {
             moved => {
+                root.dragged = true;
                 work_area.x = self.mouse-x - self.pressed-x + work_area.x;
                 work_area.y = self.mouse-y - self.pressed-y + work_area.y;
                 root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
             }
             clicked => {
-                // TODO: this should not be called if the user was dragging the workbench
-                root.workbench_clicked();
+                if root.dragged == false {
+                    root.workbench_clicked();
+                }
+            }
+            pointer-event(event) => {
+                if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+                    root.dragged = false;
+                }
             }
         }
 
-        @children
         if debugging:
         WorkAreaDebugLimit { }
+        @children
     }
     
     // overlay
