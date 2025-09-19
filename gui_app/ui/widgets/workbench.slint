@@ -140,6 +140,7 @@ export component WorkBench inherits Rectangle {
         }
 
         TouchArea {
+            mouse-cursor: root.dragged ? MouseCursor.grabbing : MouseCursor.default;
             moved => {
                 root.dragged = true;
                 work_area.x = self.mouse-x - self.pressed-x + work_area.x;

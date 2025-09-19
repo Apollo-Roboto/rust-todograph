@@ -1,0 +1,28 @@
+import { Styles } from "../styles.slint";
+import { Slider, ProgressIndicator, VerticalBox } from "std-widgets.slint";
+
+
+export component MiddleProgressBar inherits Rectangle {
+    in property <float> progress: 50%;
+    background: Styles.todo_color;
+    width: 200px;
+    height: 15px;
+    clip: true;
+    border-radius: root.height / 2;
+    border-color: black;
+    border-width: 1px;
+    HorizontalLayout {
+        Rectangle {
+            width: root.width / 2 - root.width * root.progress / 2;
+        }
+
+        Rectangle {
+            width: root.width * root.progress;
+            background: progress >= 0.9999999 ? Styles.done_color : Styles.doing_color;
+        }
+
+        Rectangle {
+            width: root.width / 2 - root.width * root.progress / 2;
+        }
+    }
+}

@@ -5,6 +5,7 @@ import { MindTask, MindTaskState } from "models.slint";
 import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
+import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 
 struct MindEdge {
     from_x: length,
@@ -23,24 +24,24 @@ enum AppMode {
     None, SetParent, AddChildren,
 }
 
-/// TODO add a progress bar that starts and expends from the middle
 component TaskBubble {
     in property <MindTask> task;
-    in property <bool> extra_info: true;
+    in property <bool> extra_info: false;
     in property <brush> default_color: Styles.todo_color;
     in property <brush> todo_color: Styles.todo_color;
     in property <brush> doing_color: Styles.doing_color;
     in property <brush> done_color: Styles.done_color;
     in property <bool> active: false;
     out property <bool> dragged <=> dr.dragged;
-    callback delete_clicked();
-    callback state_change_clicked(state: MindTaskState);
-    callback set_parent_clicked();
-    callback remove_parent_clicked();
     callback add_children_clicked();
-    callback new_children_clicked();
-    callback moved_by(x: length, y: length);
     callback clicked();
+    callback delete_clicked();
+    callback duplicate_clicked();
+    callback moved_by(x: length, y: length);
+    callback new_children_clicked();
+    callback remove_parent_clicked();
+    callback set_parent_clicked();
+    callback state_change_clicked(state: MindTaskState);
     dr := DragableRectangle {
         moved_by(x, y) => {
             root.moved_by(x, y);
@@ -109,6 +110,13 @@ component TaskBubble {
                 MenuSeparator { }
 
                 MenuItem {
+                    title: "Duplicate";
+                    activated => {
+                        root.duplicate_clicked();
+                    }
+                }
+
+                MenuItem {
                     title: "Delete";
                     activated => {
                         root.delete_clicked();
@@ -117,60 +125,6 @@ component TaskBubble {
             }
 
             VerticalLayout {
-                HorizontalLayout {
-                    TouchArea {
-                        width: 16px;
-                        height: 16px;
-                        Rectangle {
-                            background: todo_color;
-                        }
-
-                        clicked => {
-                            root.state_change_clicked(MindTaskState.Todo);
-                        }
-                    }
-
-                    TouchArea {
-                        width: 16px;
-                        height: 16px;
-                        Rectangle {
-                            background: doing_color;
-                        }
-
-                        clicked => {
-                            root.state_change_clicked(MindTaskState.Doing);
-                        }
-                    }
-
-                    TouchArea {
-                        width: 16px;
-                        height: 16px;
-                        Rectangle {
-                            background: done_color;
-                        }
-
-                        clicked => {
-                            root.state_change_clicked(MindTaskState.Done);
-                        }
-                    }
-
-                    Rectangle {
-                        horizontal-stretch: 1;
-                    }
-
-                    TouchArea {
-                        width: 16px;
-                        height: 16px;
-                        Rectangle {
-                            background: Styles.danger_color;
-                        }
-
-                        clicked => {
-                            root.delete_clicked();
-                        }
-                    }
-                }
-
                 Bubble {
                     text: task.title;
                     background: task.state == MindTaskState.Todo ? todo_color //
@@ -185,6 +139,16 @@ component TaskBubble {
                     animate drop-shadow-color, drop-shadow-blur, drop-shadow-offset-x, drop-shadow-offset-y {
                         duration: 180ms;
                         easing: ease-in-out;
+                    }
+                    if task.childrens.length > 0 && task.completion > 0:
+                    HorizontalLayout {
+                        alignment: center;
+                        y: parent.y + parent.height - 5px;
+                        MiddleProgressBar {
+                            progress: task.completion;
+                            height: 10px;
+                            width: parent.width - 50px;
+                        }
                     }
                 }
 
@@ -299,6 +263,8 @@ export component AppWindow inherits Window {
                 //         title: "Meow Meow Meow",
                 //         x: 123px,
                 //         y: 123px,
+                //         completion: 50%,
+                //         childrens: [1, 2, 3, 4],
                 //     };
                 //     moved_by(x, y) => {
                 //         self.task.x = x + self.task.x;
@@ -338,6 +304,9 @@ export component AppWindow inherits Window {
                     new_children_clicked => {
                         root.create_task_with_parent(task.id, "New Task", 0, 0);
                     }
+                    duplicate_clicked => {
+                        debug("TODO: duplicate_clicked");
+                    }
                     clicked => {
                         if root.mode == AppMode.SetParent {
                             root.set_parent_to_task(root.active_task.id, task.id);
@@ -357,6 +326,7 @@ export component AppWindow inherits Window {
             if root.has_active_task:
             TaskDetailPanel {
                 task: root.active_task;
+                width: 400px;
                 delete_clicked => {
                     root.delete_task(root.active_task.id);
                 }
