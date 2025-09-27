@@ -226,7 +226,7 @@ export component AppWindow inherits Window {
                         MenuItem {
                             title: "New Task";
                             activated => {
-                                create_task("New Task", 0px, 0px);
+                                create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                             }
                         }
                     }
@@ -303,7 +303,7 @@ export component AppWindow inherits Window {
                         root.mode = AppMode.AddChildren;
                     }
                     new_children_clicked => {
-                        root.create_task_with_parent(task.id, "New Task", 0, 0);
+                        root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                     }
                     duplicate_clicked => {
                         debug("TODO: duplicate_clicked");
@@ -358,6 +358,20 @@ export component AppWindow inherits Window {
                             : root.mode == AppMode.AddChildren ? "Mode: AddChildren" //
                             : root.mode == AppMode.SetParent ? "Mode: SetParent" //
                             : "Mode: AAAAAAAAAAAAA";
+                }
+
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    Text {
+                        horizontal-alignment: right;
+                        text: "Cursor position: ";
+                    }
+
+                    Text {
+                        width: 85px;
+                        horizontal-alignment: left;
+                        text: "(" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
+                    }
                 }
 
                 Text {

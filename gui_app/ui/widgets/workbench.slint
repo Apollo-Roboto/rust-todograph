@@ -116,6 +116,10 @@ export component WorkBench inherits Rectangle {
     out property <bool> dragged: false;
     callback moved_by(x: length, y: length);
     callback workbench_clicked();
+    /// Mouse position x relative from the center of the workbench
+    out property <length> mouse_pos_x;
+    /// Mouse position y relative from the center of the workbench
+    out property <length> mouse_pos_y;
     clip: true;
     border-color: black;
     border-width: 1px;
@@ -155,6 +159,11 @@ export component WorkBench inherits Rectangle {
             pointer-event(event) => {
                 if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
                     root.dragged = false;
+                }
+                if event.kind == PointerEventKind.move {
+                    // owo <- this comment was written without my explicit consent, I do not agree with those words
+                    root.mouse_pos_x = self.mouse-x - center_x;
+                    root.mouse_pos_y = self.mouse-y - center_y;
                 }
             }
         }
