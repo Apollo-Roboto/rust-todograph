@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::path::Path;

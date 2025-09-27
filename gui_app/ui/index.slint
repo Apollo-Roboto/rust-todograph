@@ -184,6 +184,9 @@ export component AppWindow inherits Window {
     out property <AppMode> mode: AppMode.None;
     in property <MindTask> active_task;
     in property <bool> has_active_task: false;
+    callback refresh_other();
+    callback refresh_tasks();
+    callback refresh_edges();
     callback load(path: string);
     callback save(path: string);
     callback undo();
@@ -195,14 +198,13 @@ export component AppWindow inherits Window {
     callback delete_task(id: int);
     callback change_state(id: int, state: MindTaskState);
     callback task_moved(id: int, x: length, y: length);
-    callback refresh_other();
-    callback refresh_edges();
     callback rename_task(id: int, title: string);
     callback set_active_task(id: int);
     callback clear_active_task();
     public function refresh_all() {
-        root.refresh_other();
         root.refresh_edges();
+        root.refresh_tasks();
+        root.refresh_other();
     }
     preferred-width: 600px;
     preferred-height: 600px;
@@ -285,7 +287,6 @@ export component AppWindow inherits Window {
                     }
                     delete_clicked() => {
                         root.delete_task(task.id);
-                        root.clear_active_task();
                     }
                     state_change_clicked(state) => {
                         root.change_state(task.id, state)
