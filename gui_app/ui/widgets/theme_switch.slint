@@ -1,0 +1,39 @@
+import { HorizontalBox, Switch, Palette } from "std-widgets.slint";
+
+export component ThemeSwitch {
+    out property <bool> is_dark: Palette.color-scheme == ColorScheme.dark;
+    out property <bool> is_light: Palette.color-scheme == ColorScheme.light;
+    out property <bool> checked <=> s.checked;
+    public function set_light() {
+        Palette.color-scheme = ColorScheme.light;
+        s.checked = true;
+    }
+    public function set_dark() {
+        Palette.color-scheme = ColorScheme.dark;
+        s.checked = false;
+    }
+    HorizontalBox {
+        padding: 0;
+        Text {
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            text: "Dark";
+        }
+
+        s := Switch {
+            toggled => {
+                if self.checked {
+                    Palette.color-scheme = ColorScheme.light;
+                } else {
+                    Palette.color-scheme = ColorScheme.dark;
+                }
+            }
+        }
+
+        Text {
+            horizontal-alignment: left;
+            vertical-alignment: center;
+            text: "Light";
+        }
+    }
+}

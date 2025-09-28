@@ -107,27 +107,38 @@ component WorkAreaDebugLimit inherits Rectangle {
 export component WorkBench inherits Rectangle {
     in property <length> work_area_width: 5000px;
     in property <length> work_area_height: 5000px;
-    in property <bool> debugging: true;
+    in property <bool> debug_info: false;
     in property <bool> show_position: true;
     in property <image> background_detail_image: @image-url("../assets/point_tile_c_150x150.png");
     in property <brush> background_detail_color: #ffffff;
+    out property <bool> dragged: false;
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
-    out property <bool> dragged: false;
-    callback moved_by(x: length, y: length);
-    callback workbench_clicked();
+    // View position x from the center of the viewport
+    out property <length> view_pos_x;
+    // View position y from the center of the viewport
+    out property <length> view_pos_y;
     /// Mouse position x relative from the center of the workbench
     out property <length> mouse_pos_x;
     /// Mouse position y relative from the center of the workbench
     out property <length> mouse_pos_y;
+    callback moved_by(x: length, y: length);
+    callback workbench_clicked();
+    public function move_view_to(x: length, y: length) {
+        work_area.x = root.width / 2 - x;
+        work_area.y = root.height / 2 - y;
+        root.view_pos_x = -(center_x + work_area.x - root.width / 2);
+        root.view_pos_y = -(center_y + work_area.y - root.height / 2);
+        root.moved_by(x, y);
+    }
     clip: true;
     border-color: black;
     border-width: 1px;
     border-radius: 6px;
-    public function move_view_to(x: length, y: length) {
-        work_area.x = root.width / 2 - x;
-        work_area.y = root.height / 2 - y;
-        root.moved_by(x, y); // TODO: this is probably wrong
+    init => {
+        // initial call to move to the center prevents a jump when the workbench is resized
+        // or at least I think it changes the origin to the top left somehow, not sure what's going on
+        root.move_view_to(root.center_x, root.center_y);
     }
 
     // movable rectangle containing the childrens
@@ -149,6 +160,8 @@ export component WorkBench inherits Rectangle {
                 root.dragged = true;
                 work_area.x = self.mouse-x - self.pressed-x + work_area.x;
                 work_area.y = self.mouse-y - self.pressed-y + work_area.y;
+                root.view_pos_x = -(center_x + work_area.x - root.width / 2);
+                root.view_pos_y = -(center_y + work_area.y - root.height / 2);
                 root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
             }
             clicked => {
@@ -168,22 +181,10 @@ export component WorkBench inherits Rectangle {
             }
         }
 
-        if debugging:
-        WorkAreaDebugLimit { }
+        if debug_info:
+        WorkAreaDebugLimit {
+            line_color: root.background_detail_color;
+        }
         @children
     }
-    
-    // overlay
-    // Rectangle {
-    //     VerticalBox {
-    //         alignment: end;
-    //         if show_position:
-    //         Text {
-    //             opacity: 50%;
-    //             // TODO: This isn't the correct coordinate, I expect the center of the view to line up
-    //             // Also this doesn't work right now because using x or y from the work area causes a binding loop
-    //             text: "(" + (work_area.x) / 1px + ", " + (work_area.y) / 1px + ")";
-    //         }
-    //     }
-    // }
 }

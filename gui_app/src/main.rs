@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use rust_firework_core::commands;
 use rust_firework_core::commands::Command;
+use rust_firework_core::editor::EditorEvent;
 use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
 
 use slint::ComponentHandle;
@@ -35,14 +36,25 @@ impl From<ui::MindTaskState> for MindTaskState {
 fn main() {
     let main_window = ui::AppWindow::new().unwrap();
     let mut editor = Editor::default();
+    main_window.set_history_limit(editor.history.limit() as i32);
 
     let main_window_weak = main_window.as_weak();
-    editor.on_event(move |_editor, event| {
-        let Some(_main_window) = main_window_weak.upgrade() else {
+    editor.on_event(move |editor, event| {
+        let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
         match event {
+            EditorEvent::CommandSuccess => {
+                main_window.set_history_past_count(editor.history.past().count() as i32);
+                main_window.set_history_future_count(editor.history.future().count() as i32);
+                main_window.set_history_limit(editor.history.limit() as i32);
+            }
+            EditorEvent::CommandFailed(_e) => {
+                main_window.set_history_past_count(editor.history.past().count() as i32);
+                main_window.set_history_future_count(editor.history.future().count() as i32);
+                main_window.set_history_limit(editor.history.limit() as i32);
+            }
             _ => todo!(),
         }
     });
@@ -163,6 +175,9 @@ fn main() {
         editor.history.clear();
 
         main_window.set_task_loading_state(ui::TaskLoadingState::Loading);
+        main_window.set_history_past_count(editor.history.past().count() as i32);
+        main_window.set_history_future_count(editor.history.future().count() as i32);
+        main_window.set_history_limit(editor.history.limit() as i32);
 
         editor.state.graph = TaskGraph::load(&path).unwrap();
 

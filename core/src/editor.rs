@@ -9,6 +9,8 @@ use crate::{
 pub enum EditorEvent {
     /// temporary I guess
     None,
+    CommandSuccess,
+    CommandFailed(String),
     Loading,
     LoadingDone,
     LoadingFailed(String),
@@ -47,9 +49,12 @@ impl Editor {
     pub fn execute(&mut self, cmd: Box<dyn Command>) -> Result<(), String> {
         // TODO this should probably not silently fail
         match self.history.execute(cmd, &mut self.state) {
-            Ok(_) => {}
+            Ok(_) => {
+                self.invoke_on_event(EditorEvent::CommandSuccess);
+            }
             Err(e) => {
                 println!("Command execution error: {e}");
+                self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
 
@@ -59,9 +64,12 @@ impl Editor {
     pub fn undo(&mut self) -> Result<(), String> {
         // TODO this should probably not silently fail
         match self.history.undo(&mut self.state) {
-            Ok(_) => {}
+            Ok(_) => {
+                self.invoke_on_event(EditorEvent::CommandSuccess);
+            }
             Err(e) => {
                 println!("Command undo error: {e}");
+                self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
         Ok(())
@@ -70,9 +78,12 @@ impl Editor {
     pub fn redo(&mut self) -> Result<(), String> {
         // TODO this should probably not silently fail
         match self.history.redo(&mut self.state) {
-            Ok(_) => {}
+            Ok(_) => {
+                self.invoke_on_event(EditorEvent::CommandSuccess);
+            }
             Err(e) => {
                 println!("Command redo error: {e}");
+                self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
 

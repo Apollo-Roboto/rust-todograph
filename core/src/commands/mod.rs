@@ -39,7 +39,7 @@ pub struct EditorCommandHistory {
 }
 impl Default for EditorCommandHistory {
     fn default() -> Self {
-        let limit = 20;
+        let limit = 50;
         Self {
             past: Vec::with_capacity(limit),
             future: Vec::with_capacity(limit),

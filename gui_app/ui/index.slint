@@ -1,4 +1,4 @@
-import { Button, VerticalBox, HorizontalBox, LineEdit, Palette, TextEdit } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, LineEdit, Palette, TextEdit, CheckBox, Switch } from "std-widgets.slint";
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
 import { Styles } from "styles.slint";
 import { MindTask, MindTaskState } from "models.slint";
@@ -6,6 +6,7 @@ import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
+import { ThemeSwitch } from "widgets/theme_switch.slint";
 
 struct MindEdge {
     from_x: length,
@@ -184,6 +185,10 @@ export component AppWindow inherits Window {
     out property <AppMode> mode: AppMode.None;
     in property <MindTask> active_task;
     in property <bool> has_active_task: false;
+    in property <int> history_past_count;
+    in property <int> history_future_count;
+    in property <int> history_limit;
+    in-out property <bool> debug_info: true;
     callback refresh_other();
     callback refresh_tasks();
     callback refresh_edges();
@@ -212,114 +217,156 @@ export component AppWindow inherits Window {
         HorizontalBox {
             padding: 0;
             alignment: stretch;
-            workbench := WorkBench {
-                horizontal-stretch: 1;
-                debugging: true;
-                background: Styles.workbench_background_color;
-                background_detail_color: Styles.workbench_background_details_color;
-                workbench_clicked => {
-                    root.clear_active_task();
-                    root.mode = AppMode.None;
-                }
-                ContextMenuArea {
-                    Menu {
-                        MenuItem {
-                            title: "New Task";
-                            activated => {
-                                create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+            Rectangle {
+                workbench := WorkBench {
+                    horizontal-stretch: 1;
+                    debug_info: root.debug_info;
+                    background: Styles.workbench_background_color;
+                    background_detail_color: Styles.workbench_background_details_color;
+                    workbench_clicked => {
+                        root.clear_active_task();
+                        root.mode = AppMode.None;
+                    }
+                    ContextMenuArea {
+                        Menu {
+                            MenuItem {
+                                title: "New Task";
+                                activated => {
+                                    create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                                }
                             }
                         }
                     }
-                }
 
-                // place every edges
-                for edge in edges: Edge {
-                    stroke: Styles.edge_color;
-                    stroke_width: 4px;
-                    from_x: edge.from_x;
-                    from_y: edge.from_y;
-                    to_x: edge.to_x;
-                    to_y: edge.to_y;
-                }
+                    // place every edges
+                    for edge in edges: Edge {
+                        stroke: Styles.edge_color;
+                        stroke_width: 4px;
+                        from_x: edge.from_x;
+                        from_y: edge.from_y;
+                        to_x: edge.to_x;
+                        to_y: edge.to_y;
+                    }
 
-                // TODO: add a line from the active task to the cursor
-                if root.mode == AppMode.SetParent //
-                || root.mode == AppMode.AddChildren:
-                Edge {
-                    stroke: Styles.edge_color;
-                    stroke_width: 4px;
-                    from_x: active_task.x;
-                    from_y: active_task.y;
-                    to_x: workbench.mouse_pos_x;
-                    to_y: workbench.mouse_pos_y;
-                }
+                    // TODO: add a line from the active task to the cursor
+                    if root.mode == AppMode.SetParent //
+                    || root.mode == AppMode.AddChildren:
+                    Edge {
+                        stroke: Styles.edge_color;
+                        stroke_width: 4px;
+                        from_x: active_task.x;
+                        from_y: active_task.y;
+                        to_x: workbench.mouse_pos_x;
+                        to_y: workbench.mouse_pos_y;
+                    }
 
 
-                // temp bubble
-                // bubble_b := TaskBubble {
-                //     x: workbench.center_x + self.task.x - self.width / 2;
-                //     y: workbench.center_y + self.task.y - self.height / 2;
-                //     active: false;
-                //     task: {
-                //         id: 55,
-                //         title: "Meow Meow Meow",
-                //         x: 123px,
-                //         y: 123px,
-                //         completion: 50%,
-                //         childrens: [1, 2, 3, 4],
-                //     };
-                //     moved_by(x, y) => {
-                //         self.task.x = x + self.task.x;
-                //         self.task.y = y + self.task.y;
-                //     }
-                // }
+                    // temp bubble
+                    // bubble_b := TaskBubble {
+                    //     x: workbench.center_x + self.task.x - self.width / 2;
+                    //     y: workbench.center_y + self.task.y - self.height / 2;
+                    //     active: false;
+                    //     task: {
+                    //         id: 55,
+                    //         title: "Meow Meow Meow",
+                    //         x: 123px,
+                    //         y: 123px,
+                    //         completion: 50%,
+                    //         childrens: [1, 2, 3, 4],
+                    //     };
+                    //     moved_by(x, y) => {
+                    //         self.task.x = x + self.task.x;
+                    //         self.task.y = y + self.task.y;
+                    //     }
+                    // }
 
-                // place every tasks
-                for task in tasks: TaskBubble {
-                    x: workbench.center_x + task.x - self.width / 2;
-                    y: workbench.center_y + task.y - self.height / 2;
-                    task: task;
-                    active: root.has_active_task && root.active_task.id == task.id;
-                    moved_by(x, y) => {
-                        task.x = x + task.x;
-                        task.y = y + task.y;
-                        root.task_moved(task.id, task.x, task.y);
-                    }
-                    delete_clicked() => {
-                        root.delete_task(task.id);
-                    }
-                    state_change_clicked(state) => {
-                        root.change_state(task.id, state)
-                    }
-                    set_parent_clicked => {
-                        root.set_active_task(task.id);
-                        root.mode = AppMode.SetParent;
-                    }
-                    remove_parent_clicked => {
-                        root.unset_parent_from_task(task.id);
-                    }
-                    add_children_clicked => {
-                        root.set_active_task(task.id);
-                        root.mode = AppMode.AddChildren;
-                    }
-                    new_children_clicked => {
-                        root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
-                    }
-                    duplicate_clicked => {
-                        debug("TODO: duplicate_clicked");
-                    }
-                    clicked => {
-                        if root.mode == AppMode.SetParent {
-                            root.set_parent_to_task(root.active_task.id, task.id);
-                            root.mode = AppMode.None;
-                            return;
+                    // place every tasks
+                    for task in tasks: TaskBubble {
+                        x: workbench.center_x + task.x - self.width / 2;
+                        y: workbench.center_y + task.y - self.height / 2;
+                        task: task;
+                        active: root.has_active_task && root.active_task.id == task.id;
+                        moved_by(x, y) => {
+                            task.x = x + task.x;
+                            task.y = y + task.y;
+                            root.task_moved(task.id, task.x, task.y);
                         }
-                        if root.mode == AppMode.AddChildren {
-                            root.set_parent_to_task(task.id, root.active_task.id);
-                            root.mode = AppMode.None;
-                            return;
+                        delete_clicked() => {
+                            root.delete_task(task.id);
                         }
-                        root.set_active_task(task.id);
+                        state_change_clicked(state) => {
+                            root.change_state(task.id, state)
+                        }
+                        set_parent_clicked => {
+                            root.set_active_task(task.id);
+                            root.mode = AppMode.SetParent;
+                        }
+                        remove_parent_clicked => {
+                            root.unset_parent_from_task(task.id);
+                        }
+                        add_children_clicked => {
+                            root.set_active_task(task.id);
+                            root.mode = AppMode.AddChildren;
+                        }
+                        new_children_clicked => {
+                            root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                        }
+                        duplicate_clicked => {
+                            debug("TODO: duplicate_clicked");
+                        }
+                        clicked => {
+                            if root.mode == AppMode.SetParent {
+                                root.set_parent_to_task(root.active_task.id, task.id);
+                                root.mode = AppMode.None;
+                                return;
+                            }
+                            if root.mode == AppMode.AddChildren {
+                                root.set_parent_to_task(task.id, root.active_task.id);
+                                root.mode = AppMode.None;
+                                return;
+                            }
+                            root.set_active_task(task.id);
+                        }
+                    }
+                }
+
+                // debug overlay
+                VerticalBox {
+                    visible: root.debug_info;
+                    alignment: start;
+                    private property <string> font: "Consolas";
+                    Text {
+                        font-family: parent.font;
+                        text: "View Position: (" + workbench.view_pos_x / 1px + "," + workbench.view_pos_y / 1px + ")";
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: "Cursor position: (" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
+                    }
+
+                    Text {
+                        text: root.has_active_task //
+                            ? "Active Task: #" + root.active_task.id //
+                            : "Active Task: None";
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: root.mode == AppMode.None ? "Application Mode: None" //
+                            : root.mode == AppMode.AddChildren ? "Application Mode: AddChildren" //
+                            : root.mode == AppMode.SetParent ? "Application Mode: SetParent" //
+                            : "Mode: AAAAAAAAAAAAA";
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: "History Past/Future: " + root.history_past_count + "/" + root.history_future_count + " (" + root.history_limit + ")";
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
                     }
                 }
             }
@@ -346,118 +393,76 @@ export component AppWindow inherits Window {
         }
 
         // button controls
-        VerticalLayout {
-            alignment: end;
-            // debug row
-            HorizontalBox {
-                alignment: stretch;
-                Text {
-                    horizontal-stretch: 1;
-                    horizontal-alignment: center;
-                    text: root.mode == AppMode.None ? "Mode: None" //
-                            : root.mode == AppMode.AddChildren ? "Mode: AddChildren" //
-                            : root.mode == AppMode.SetParent ? "Mode: SetParent" //
-                            : "Mode: AAAAAAAAAAAAA";
-                }
-
-                HorizontalLayout {
-                    horizontal-stretch: 1;
-                    Text {
-                        horizontal-alignment: right;
-                        text: "Cursor position: ";
-                    }
-
-                    Text {
-                        width: 85px;
-                        horizontal-alignment: left;
-                        text: "(" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
-                    }
-                }
-
-                Text {
-                    horizontal-stretch: 1;
-                    horizontal-alignment: center;
-                    text: "History Past/Future: TODO/TODO";
-                }
-
-                Text {
-                    horizontal-stretch: 1;
-                    horizontal-alignment: center;
-                    text: root.has_active_task //
-                        ? "Active Task: #" + root.active_task.id //
-                        : "Active Task: None";
-                }
-
-                Text {
-                    horizontal-stretch: 1;
-                    horizontal-alignment: center;
-                    text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
+        HorizontalBox {
+            padding: 0px;
+            Button {
+                text: "Center View";
+                clicked => {
+                    workbench.move_view_to(workbench.center_x, workbench.center_y);
                 }
             }
 
-            // button row
-            HorizontalBox {
-                padding: 0px;
-                Button {
-                    text: "Center View";
-                    clicked => {
-                        workbench.move_view_to(workbench.center_x, workbench.center_y);
-                    }
+            Button {
+                text: "Clear Active";
+                clicked => {
+                    root.clear_active_task();
                 }
+            }
 
-                Button {
-                    text: "Clear Active";
-                    clicked => {
-                        root.clear_active_task();
-                    }
+            Button {
+                text: "Reset Mode";
+                clicked => {
+                    root.mode = AppMode.None;
                 }
+            }
 
-                Button {
-                    text: "Reset Mode";
-                    clicked => {
-                        root.mode = AppMode.None;
-                    }
+            Button {
+                text: "Refresh All";
+                clicked => {
+                    root.refresh_all();
                 }
+            }
 
-                Button {
-                    text: "Refresh All";
-                    clicked => {
-                        root.refresh_all();
-                    }
+            Button {
+                text: "Undo";
+                enabled: root.history_past_count > 0;
+                clicked => {
+                    root.undo();
                 }
+            }
 
-                Button {
-                    // TODO: this should be disabled if there is no past commands
-                    text: "Undo";
-                    clicked => {
-                        root.undo();
-                    }
+            Button {
+                text: "Redo";
+                enabled: root.history_future_count > 0;
+                clicked => {
+                    root.redo();
                 }
+            }
 
-                Button {
-                    // TODO: this should be disabled if there is no future commands
-                    text: "Redo";
-                    clicked => {
-                        root.redo();
-                    }
+            ThemeSwitch { }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            CheckBox {
+                text: "Debug Info";
+                checked <=> root.debug_info;
+            }
+
+            Button {
+                text: "Load";
+                clicked => {
+                    root.load("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
+                    // root.load("/media/apollo/tipitytapity/repositories/apollo-roboto/rust-firework/resources/sample_tasks.json");
                 }
+            }
 
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                Button {
-                    text: "Load";
-                    clicked => {
-                        root.load("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
-                    }
-                }
-
-                Button {
-                    text: "Save";
-                    clicked => {
-                        root.save("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
-                    }
+            Button {
+                text: "Save";
+                clicked => {
+                    root.save("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
+                    // root.save("/media/apollo/tipitytapity/repositories/apollo-roboto/rust-firework/resources/sample_tasks.json");
                 }
             }
         }
