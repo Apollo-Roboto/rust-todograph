@@ -248,10 +248,10 @@ export component AppWindow inherits Window {
                 Edge {
                     stroke: Styles.edge_color;
                     stroke_width: 4px;
-                    from_x: 0;
-                    from_y: 0;
-                    to_x: workbench.center_x;
-                    to_y: workbench.center_y;
+                    from_x: active_task.x;
+                    from_y: active_task.y;
+                    to_x: workbench.mouse_pos_x;
+                    to_y: workbench.mouse_pos_y;
                 }
 
 
