@@ -49,6 +49,14 @@ fn main() {
                 main_window.set_history_past_count(editor.history.past().count() as i32);
                 main_window.set_history_future_count(editor.history.future().count() as i32);
                 main_window.set_history_limit(editor.history.limit() as i32);
+                main_window.set_last_command(
+                    editor
+                        .history
+                        .last()
+                        .map_or(slint::SharedString::new(), |cmd| {
+                            slint::SharedString::from(cmd.to_string())
+                        }),
+                );
             }
             EditorEvent::CommandFailed(_e) => {
                 main_window.set_history_past_count(editor.history.past().count() as i32);
@@ -70,35 +78,17 @@ fn main() {
         let editor = editor_clone.lock().unwrap();
 
         // refresh the copied active task
-        if let Some(active_task_id) = editor.state.active_task
-            && let Some(active_task) = editor
+        if let Some(task_id) = editor.state.active_task
+            && let Some(task_index) = editor
                 .state
                 .graph
                 .tasks
                 .iter()
-                .find(|t| t.id == active_task_id)
+                .position(|t| t.id == task_id)
         {
-            let ui_task = ui::MindTask {
-                id: active_task.id as i32,
-                state: active_task.state.into(),
-                title: active_task.title.clone().into(),
-                x: active_task.pos.x,
-                y: active_task.pos.y,
-                parent: active_task.parent.map_or(-1, |id| id as i32),
-                childrens: std::rc::Rc::new(slint::VecModel::from_iter(
-                    active_task.childrens.iter().map(|id| *id as i32),
-                ))
-                .into(),
-                completion: editor
-                    .state
-                    .graph
-                    .calc_progress(active_task.id)
-                    .unwrap_or(0.0),
-            };
-            main_window.set_active_task(ui_task);
-            main_window.set_has_active_task(true);
+            main_window.set_active_task_index(task_index as i32);
         } else {
-            main_window.set_has_active_task(false);
+            main_window.set_active_task_index(-1);
         }
     });
 
@@ -173,11 +163,13 @@ fn main() {
 
         // no commands in the history is relevent after loading a project
         editor.history.clear();
+        editor.state.active_task = None;
 
         main_window.set_task_loading_state(ui::TaskLoadingState::Loading);
         main_window.set_history_past_count(editor.history.past().count() as i32);
         main_window.set_history_future_count(editor.history.future().count() as i32);
         main_window.set_history_limit(editor.history.limit() as i32);
+        main_window.set_last_command(slint::SharedString::new());
 
         editor.state.graph = TaskGraph::load(&path).unwrap();
 
@@ -243,6 +235,9 @@ fn main() {
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
     main_window.on_delete_task(move |task_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
         let mut editor = editor_clone.lock().unwrap();
         let Some(task) = editor
             .state
@@ -255,6 +250,19 @@ fn main() {
         };
         let cmd = Box::new(commands::DeleteTaskCommand::new(task.clone()));
         editor.execute(cmd).unwrap();
+
+        if let Some(active_task_index) = editor
+            .state
+            .graph
+            .tasks
+            .iter()
+            .position(|t| Some(t.id) == editor.state.active_task)
+        {
+            main_window.set_active_task_index(active_task_index as i32);
+        } else {
+            main_window.set_active_task_index(-1);
+        }
+
         handle_task_change(&main_window_weak, editor);
     });
 
@@ -299,6 +307,15 @@ fn main() {
             task_id as u32,
             state.into(),
         ));
+        editor.execute(cmd).unwrap();
+        handle_task_change(&main_window_weak, editor);
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_duplicate_task(move |task_id, _x, _y| {
+        let mut editor = editor_clone.lock().unwrap();
+        let cmd = Box::new(commands::DuplicateTaskCommand::new(task_id as u32));
         editor.execute(cmd).unwrap();
         handle_task_change(&main_window_weak, editor);
     });
@@ -391,41 +408,28 @@ fn handle_active_task_change(
         return;
     };
     let Some(task_id) = editor.state.active_task else {
-        main_window.set_has_active_task(false);
+        main_window.set_active_task_index(-1);
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
         return;
     };
 
-    let Some(task) = editor
+    let Some(task_index) = editor
         .state
         .graph
         .tasks
         .iter()
-        .find(|t| t.id == task_id as u32)
-        .cloned()
+        .position(|t| t.id == task_id)
     else {
+        main_window.set_active_task_index(-1);
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
         return;
-    };
-
-    let ui_task = ui::MindTask {
-        id: task.id as i32,
-        state: task.state.into(),
-        title: task.title.into(),
-        x: task.pos.x,
-        y: task.pos.y,
-        parent: task.parent.map_or(-1, |id| id as i32),
-        childrens: std::rc::Rc::new(slint::VecModel::from_iter(
-            task.childrens.iter().map(|id| *id as i32),
-        ))
-        .into(),
-        completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
     };
 
     std::mem::drop(editor);
 
-    main_window.set_active_task(ui_task);
-    main_window.set_has_active_task(true);
+    main_window.set_active_task_index(task_index as i32);
     main_window.invoke_refresh_tasks();
 }
 

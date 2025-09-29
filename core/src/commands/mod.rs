@@ -21,6 +21,7 @@ import_commands! {
     set_task_position::SetTaskPositionCommand,
     set_task_state::SetTaskStateCommand,
     set_task_title::SetTaskTitleCommand,
+    duplicate_task::DuplicateTaskCommand,
 }
 
 pub trait Command: Display {

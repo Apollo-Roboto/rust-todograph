@@ -183,11 +183,11 @@ export component AppWindow inherits Window {
     in property <string> task_saving_error_message;
     in property <float> overall_progress: 0.0;
     out property <AppMode> mode: AppMode.None;
-    in property <MindTask> active_task;
-    in property <bool> has_active_task: false;
+    in property <int> active_task_index: -1;
     in property <int> history_past_count;
     in property <int> history_future_count;
     in property <int> history_limit;
+    in property <string> last_command;
     in-out property <bool> debug_info: true;
     callback refresh_other();
     callback refresh_tasks();
@@ -200,6 +200,7 @@ export component AppWindow inherits Window {
     callback create_task_with_parent(parent_id: int, title: string, x: length, y: length);
     callback set_parent_to_task(id: int, parent: int);
     callback unset_parent_from_task(id: int);
+    callback duplicate_task(id: int, x: length, y: length);
     callback delete_task(id: int);
     callback change_state(id: int, state: MindTaskState);
     callback task_moved(id: int, x: length, y: length);
@@ -254,12 +255,11 @@ export component AppWindow inherits Window {
                     Edge {
                         stroke: Styles.edge_color;
                         stroke_width: 4px;
-                        from_x: active_task.x;
-                        from_y: active_task.y;
+                        from_x: tasks[active_task_index].x;
+                        from_y: tasks[active_task_index].y;
                         to_x: workbench.mouse_pos_x;
                         to_y: workbench.mouse_pos_y;
                     }
-
 
                     // temp bubble
                     // bubble_b := TaskBubble {
@@ -285,7 +285,7 @@ export component AppWindow inherits Window {
                         x: workbench.center_x + task.x - self.width / 2;
                         y: workbench.center_y + task.y - self.height / 2;
                         task: task;
-                        active: root.has_active_task && root.active_task.id == task.id;
+                        active: root.active_task_index >= 0 && root.tasks[active_task_index].id == task.id;
                         moved_by(x, y) => {
                             task.x = x + task.x;
                             task.y = y + task.y;
@@ -312,16 +312,16 @@ export component AppWindow inherits Window {
                             root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
                         duplicate_clicked => {
-                            debug("TODO: duplicate_clicked");
+                            root.duplicate_task(task.id, workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
                         clicked => {
                             if root.mode == AppMode.SetParent {
-                                root.set_parent_to_task(root.active_task.id, task.id);
+                                root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
                                 root.mode = AppMode.None;
                                 return;
                             }
                             if root.mode == AppMode.AddChildren {
-                                root.set_parent_to_task(task.id, root.active_task.id);
+                                root.set_parent_to_task(task.id, root.tasks[active_task_index].id);
                                 root.mode = AppMode.None;
                                 return;
                             }
@@ -337,7 +337,7 @@ export component AppWindow inherits Window {
                     private property <string> font: "Consolas";
                     Text {
                         font-family: parent.font;
-                        text: "View Position: (" + workbench.view_pos_x / 1px + "," + workbench.view_pos_y / 1px + ")";
+                        text: "View Position: (" + Math.round(workbench.view_pos_x / 1px) + "," + Math.round(workbench.view_pos_y / 1px) + ")";
                     }
 
                     Text {
@@ -346,8 +346,17 @@ export component AppWindow inherits Window {
                     }
 
                     Text {
-                        text: root.has_active_task //
-                            ? "Active Task: #" + root.active_task.id //
+                        text: "Number of Tasks: " + root.tasks.length;
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
+                    }
+
+                    Text {
+                        text: root.active_task_index >= 0 //
+                            ? "Active Task: #" + root.tasks[active_task_index].id //
                             : "Active Task: None";
                     }
 
@@ -366,28 +375,29 @@ export component AppWindow inherits Window {
 
                     Text {
                         font-family: parent.font;
-                        text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
+                        text: root.last_command == "" //
+                            ? "Last command: None" //
+                            : "Last command: " + root.last_command;
                     }
                 }
             }
 
-            if root.has_active_task:
+            if root.active_task_index >= 0:
             TaskDetailPanel {
-                task: root.active_task;
+                task: root.tasks[active_task_index];
                 width: 400px;
                 delete_clicked => {
-                    root.delete_task(root.active_task.id);
+                    root.delete_task(root.tasks[active_task_index].id);
                 }
                 title_changed(title) => {
-                    root.rename_task(root.active_task.id, title);
+                    root.rename_task(root.tasks[active_task_index].id, title);
                 }
                 description_changed(description) => {
                     // root.TODO(root.active_task.id, description);
                     debug("Not implemented yet");
                 }
                 state_changed(state) => {
-                    root.change_state(root.active_task.id, state);
-                    // todo: The task doesn't seem to be refreshed in the detail panel
+                    root.change_state(root.tasks[active_task_index].id, state);
                 }
             }
         }
