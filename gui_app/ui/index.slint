@@ -172,7 +172,7 @@ component TaskBubble {
 }
 
 export component AppWindow inherits Window {
-    in property <[MindTask]> tasks;
+    in-out property <[MindTask]> tasks;
     in property <TaskLoadingState> task_loading_state: TaskLoadingState.None;
     in property <string> task_loading_error_message;
     in property <TaskSavingState> task_saving_state: TaskSavingState.None;
@@ -383,11 +383,15 @@ export component AppWindow inherits Window {
             if root.active_task_index >= 0:
             TaskDetailPanel {
                 task: root.tasks[active_task_index];
+                show: root.active_task_index != -1;
                 width: 400px;
                 delete_clicked => {
                     root.delete_task(root.tasks[active_task_index].id);
                 }
                 title_changed(title) => {
+                    root.tasks[active_task_index].title = title;
+                }
+                title_submitted(title) => {
                     root.rename_task(root.tasks[active_task_index].id, title);
                 }
                 description_changed(description) => {

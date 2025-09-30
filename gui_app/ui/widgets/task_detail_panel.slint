@@ -1,4 +1,4 @@
-import { VerticalBox, HorizontalBox, LineEdit, Button, TextEdit, ComboBox } from "std-widgets.slint";
+import { VerticalBox, HorizontalBox, LineEdit, Button, TextEdit, ComboBox, Palette } from "std-widgets.slint";
 import { MindTask, MindTaskState } from "../models.slint";
 import { Styles } from "../styles.slint";
 
@@ -28,12 +28,129 @@ component StateButton inherits Rectangle {
     }
 }
 
+/// Takes full focus of the application
+/// the text is submitted when the focus is lost
+/// any click outside makes it lose focus
+/// accepted (enter) will make it unfocus
+/// This behavior is inspired from Blender
+/// TODO: tab should go to the next focus element
+component PriorityFocusLineEdit {
+    in property <string> text;
+    in property <string> placeholder-text;
+    in property <bool> enabled: true;
+    in property <InputType> input-type;
+    out property <bool> has_changed: false;
+    out property <bool> has-focus;
+    out property <string> original_text;
+    callback changed(string);
+    callback submitted(string);
+    property <bool> popup_opened: false;
+    /// cancel the interaction
+    public function cancel() {
+        fake_lineedit.text = original_text;
+        root.popup_opened = false;
+        popup.close();
+        root.changed(original_text);
+    }
+    /// submit the change in the text
+    function submit(text: string) {
+        fake_lineedit.text = text;
+        root.has_changed = false;
+        root.original_text = text;
+        root.popup_opened = false;
+        root.submitted(text);
+        popup.close();
+    }
+    init => {
+        root.original_text = text;
+    }
+    fake_lineedit := LineEdit {
+        opacity: popup_opened ? 0% : 100%;
+        width: parent.width;
+        text: root.text;
+        enabled: root.enabled;
+        input-type: root.input-type;
+        placeholder-text: root.placeholder-text;
+        changed has-focus => {
+            if self.has-focus {
+                self.clear-focus();
+                root.popup_opened = true;
+                popup.show();
+            }
+        }
+    }
+
+    popup := PopupWindow {
+        close-policy: PopupClosePolicy.no-auto-close;
+        // Size Should be the full window but 100% doesn't work in version 1.13
+        width: 10000px;
+        height: 10000px;
+        init => {
+            real_lineedit.focus();
+            real_lineedit.select-all();
+        }
+        TouchArea {
+            mouse-cursor: MouseCursor.text;
+            clicked => {
+                real_lineedit.clear-focus();
+            }
+        }
+
+        real_lineedit := LineEdit {
+            text: root.text;
+            width: fake_lineedit.width;
+            x: fake_lineedit.absolute-position.x;
+            y: fake_lineedit.absolute-position.y;
+            enabled: root.enabled;
+            input-type: root.input-type;
+            placeholder-text: root.placeholder-text;
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    root.cancel();
+                    return EventResult.accept;
+                }
+                return EventResult.reject;
+            }
+            accepted(text) => {
+                self.clear-focus();
+            }
+            edited(text) => {
+                root.has_changed = true;
+                root.changed(text);
+            }
+            changed has-focus => {
+                root.has-focus = self.has-focus;
+                if !self.has-focus && root.has_changed {
+                    root.submit(text);
+                    return;
+                }
+                if !self.has-focus {
+                    root.popup_opened = false;
+                    popup.close();
+                }
+            }
+        }
+    }
+}
+
 export component TaskDetailPanel inherits Rectangle {
     in property <MindTask> task;
+    in property <bool> show: false;
     callback title_changed(string);
+    callback title_submitted(string);
     callback description_changed(string);
     callback state_changed(MindTaskState);
     callback delete_clicked();
+    if !root.show:
+    VerticalBox {
+        alignment: center;
+        Text {
+            font-family: "Consolas";
+            horizontal-alignment: center;
+            text: "Select a task";
+        }
+    }
+    if root.show:
     VerticalBox {
         padding: 0;
         alignment: stretch;
@@ -50,10 +167,13 @@ export component TaskDetailPanel inherits Rectangle {
                 text: "Title";
             }
 
-            LineEdit {
+            PriorityFocusLineEdit {
                 text: task.title;
-                accepted(text) => {
+                changed(text) => {
                     root.title_changed(text);
+                }
+                submitted(text) => {
+                    root.title_submitted(text);
                 }
             }
         }
@@ -94,6 +214,9 @@ export component TaskDetailPanel inherits Rectangle {
         TextEdit {
             vertical-stretch: 1;
             // TODO: text: task.description;
+            edited(text) => {
+                //
+            }
         }
 
         // Text {
