@@ -64,6 +64,9 @@ component PriorityFocusLineEdit {
     init => {
         root.original_text = text;
     }
+    changed text => {
+        fake_lineedit.text = root.text;
+    }
     fake_lineedit := LineEdit {
         opacity: popup_opened ? 0% : 100%;
         width: parent.width;
