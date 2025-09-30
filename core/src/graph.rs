@@ -147,7 +147,7 @@ impl TaskGraph {
     }
 
     /// Check if an id already exists
-    fn does_id_exists(&self, id: u32) -> bool {
+    pub fn does_id_exists(&self, id: u32) -> bool {
         self.tasks.iter().any(|t| t.id == id)
     }
 

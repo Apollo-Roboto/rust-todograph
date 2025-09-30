@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(unused)]
 
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -31,6 +32,71 @@ impl From<ui::MindTaskState> for MindTaskState {
             ui::MindTaskState::Done => MindTaskState::Done,
         }
     }
+}
+fn editor_task_to_ui_task(task_id: u32, editor: &Editor) -> Result<ui::MindTask, ()> {
+    let Some(task) = editor.state.graph.tasks.iter().find(|t| t.id == task_id) else {
+        return Err(());
+    };
+
+    let childrens = std::rc::Rc::new(slint::VecModel::from_iter(
+        task.childrens.iter().map(|id| *id as i32),
+    ))
+    .into();
+
+    let parent_index = editor
+        .state
+        .graph
+        .tasks
+        .iter()
+        .position(|t| Some(t.id) == task.parent)
+        .map_or(-1, |id| id as i32);
+
+    Ok(ui::MindTask {
+        childrens,
+        completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
+        id: task.id as i32,
+        parent_id: task.parent.map_or(-1, |id| id as i32),
+        parent_index,
+        state: task.state.into(),
+        title: task.title.clone().into(),
+        x: task.pos.x,
+        y: task.pos.y,
+    })
+}
+
+fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
+    editor
+        .state
+        .graph
+        .tasks
+        .iter()
+        .map(|task| {
+            let childrens = std::rc::Rc::new(slint::VecModel::from_iter(
+                task.childrens.iter().map(|id| *id as i32),
+            ))
+            .into();
+
+            let parent_index = editor
+                .state
+                .graph
+                .tasks
+                .iter()
+                .position(|t| Some(t.id) == task.parent)
+                .map_or(-1, |id| id as i32);
+
+            ui::MindTask {
+                childrens,
+                completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
+                id: task.id as i32,
+                parent_id: task.parent.map_or(-1, |id| id as i32),
+                parent_index,
+                state: task.state.into(),
+                title: task.title.clone().into(),
+                x: task.pos.x,
+                y: task.pos.y,
+            }
+        })
+        .collect()
 }
 
 fn main() {
@@ -94,32 +160,6 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_refresh_edges(move || {
-        let Some(main_window) = main_window_weak.upgrade() else {
-            return;
-        };
-        let editor = editor_clone.lock().unwrap();
-
-        // get the positions of the edges
-        let edges: Vec<ui::MindEdge> = editor
-            .state
-            .graph
-            .get_all_edges()
-            .iter()
-            .map(|(from, to)| ui::MindEdge {
-                from_x: from.x,
-                from_y: from.y,
-                to_x: to.x,
-                to_y: to.y,
-            })
-            .collect();
-        let edges_model = std::rc::Rc::new(slint::VecModel::from(edges));
-
-        main_window.set_edges(edges_model.into());
-    });
-
-    let main_window_weak = main_window.as_weak();
-    let editor_clone = editor.clone();
     main_window.on_refresh_tasks(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
@@ -127,25 +167,7 @@ fn main() {
         let editor = editor_clone.lock().unwrap();
 
         // get the tasks
-        let tasks: Vec<ui::MindTask> = editor
-            .state
-            .graph
-            .tasks
-            .iter()
-            .map(|t| ui::MindTask {
-                id: t.id as i32,
-                state: t.state.into(),
-                title: t.title.clone().into(),
-                x: t.pos.x,
-                y: t.pos.y,
-                parent: t.parent.map_or(-1, |id| id as i32),
-                childrens: std::rc::Rc::new(slint::VecModel::from_iter(
-                    t.childrens.iter().map(|id| *id as i32),
-                ))
-                .into(),
-                completion: editor.state.graph.calc_progress(t.id).unwrap_or(0.0),
-            })
-            .collect();
+        let tasks = all_editor_task_to_ui_task(&editor);
         let tasks_model = std::rc::Rc::new(slint::VecModel::from(tasks));
 
         main_window.set_tasks(tasks_model.into());
@@ -322,17 +344,13 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_task_moved(move |task_id, x, y| {
+    main_window.on_task_moved_dropped(move |task_id, x, y| {
         let mut editor = editor_clone.lock().unwrap();
-        let mut cmd = Box::new(commands::SetTaskPositionCommand::new(
+        let cmd = Box::new(commands::SetTaskPositionCommand::new(
             task_id as u32,
             Point { x, y },
         ));
-        // TODO: this is called too often, I need to save only when it was dropped into the command history
-        // for now I'll just not have the movement in the history at all
-        // command_history.execute(cmd, &mut task_manager).unwrap();
-        cmd.execute(&mut editor.state).unwrap();
-        handle_task_move(&main_window_weak, editor);
+        editor.execute(cmd).unwrap();
     });
 
     let main_window_weak = main_window.as_weak();
@@ -392,14 +410,6 @@ fn main() {
     main_window.run().unwrap();
 }
 
-fn handle_task_move(main_window_weak: &slint::Weak<ui::AppWindow>, editor: MutexGuard<Editor>) {
-    let Some(main_window) = main_window_weak.upgrade() else {
-        return;
-    };
-    std::mem::drop(editor);
-    main_window.invoke_refresh_edges();
-}
-
 fn handle_active_task_change(
     main_window_weak: &slint::Weak<ui::AppWindow>,
     editor: MutexGuard<Editor>,
@@ -439,5 +449,4 @@ fn handle_task_change(main_window_weak: &slint::Weak<ui::AppWindow>, editor: Mut
     };
     std::mem::drop(editor);
     main_window.invoke_refresh_tasks();
-    main_window.invoke_refresh_edges();
 }

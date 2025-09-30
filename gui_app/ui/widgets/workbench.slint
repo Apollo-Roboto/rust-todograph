@@ -1,7 +1,8 @@
 export component DragableRectangle inherits Rectangle {
+    out property <bool> dragged: false;
     callback moved_by(x: length, y: length);
     callback clicked();
-    out property <bool> dragged: false;
+    callback released();
     TouchArea {
         moved => {
             root.dragged = true;
@@ -13,8 +14,9 @@ export component DragableRectangle inherits Rectangle {
             }
         }
         pointer-event(event) => {
-            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up && root.dragged == true {
                 root.dragged = false;
+                root.released();
             }
         }
     }

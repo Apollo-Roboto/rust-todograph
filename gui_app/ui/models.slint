@@ -11,7 +11,8 @@ export struct MindTask {
     state: MindTaskState,
     x: length,
     y: length,
-    parent: int,
+    parent_id: int,
+    parent_index: int,
     childrens: [int],
     completion: float,
 }

@@ -111,9 +111,9 @@ export component TaskDetailPanel inherits Rectangle {
         Text {
             // TODO: would be cool to click so you can navigate to the parent
             font-family: "Consolas";
-            text: root.task.parent == -1 //
+            text: root.task.parent_id == -1 //
                 ? "Parent: None" //
-                : "Parent: #" + root.task.parent;
+                : "Parent: #" + root.task.parent_id;
         }
 
         Text {

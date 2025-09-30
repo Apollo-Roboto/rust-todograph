@@ -8,13 +8,6 @@ import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 import { ThemeSwitch } from "widgets/theme_switch.slint";
 
-struct MindEdge {
-    from_x: length,
-    from_y: length,
-    to_x: length,
-    to_y: length,
-}
-
 enum TaskLoadingState {
     None, Loading, Error,
 }
@@ -34,8 +27,9 @@ component TaskBubble {
     in property <brush> done_color: Styles.done_color;
     in property <bool> active: false;
     out property <bool> dragged <=> dr.dragged;
-    callback add_children_clicked();
     callback clicked();
+    callback released();
+    callback add_children_clicked();
     callback delete_clicked();
     callback duplicate_clicked();
     callback moved_by(x: length, y: length);
@@ -49,6 +43,9 @@ component TaskBubble {
         }
         clicked => {
             root.clicked();
+        }
+        released => {
+            root.released();
         }
         ContextMenuArea {
             Menu {
@@ -176,7 +173,6 @@ component TaskBubble {
 
 export component AppWindow inherits Window {
     in property <[MindTask]> tasks;
-    in property <[MindEdge]> edges;
     in property <TaskLoadingState> task_loading_state: TaskLoadingState.None;
     in property <string> task_loading_error_message;
     in property <TaskSavingState> task_saving_state: TaskSavingState.None;
@@ -191,7 +187,6 @@ export component AppWindow inherits Window {
     in-out property <bool> debug_info: true;
     callback refresh_other();
     callback refresh_tasks();
-    callback refresh_edges();
     callback load(path: string);
     callback save(path: string);
     callback undo();
@@ -203,12 +198,11 @@ export component AppWindow inherits Window {
     callback duplicate_task(id: int, x: length, y: length);
     callback delete_task(id: int);
     callback change_state(id: int, state: MindTaskState);
-    callback task_moved(id: int, x: length, y: length);
+    callback task_moved_dropped(id: int, x: length, y: length);
     callback rename_task(id: int, title: string);
     callback set_active_task(id: int);
     callback clear_active_task();
     public function refresh_all() {
-        root.refresh_edges();
         root.refresh_tasks();
         root.refresh_other();
     }
@@ -240,16 +234,18 @@ export component AppWindow inherits Window {
                     }
 
                     // place every edges
-                    for edge in edges: Edge {
-                        stroke: Styles.edge_color;
-                        stroke_width: 4px;
-                        from_x: edge.from_x;
-                        from_y: edge.from_y;
-                        to_x: edge.to_x;
-                        to_y: edge.to_y;
+                    for task in tasks: //
+                    Rectangle {
+                        if task.parent_index != -1:
+                        Edge {
+                            stroke: Styles.edge_color;
+                            stroke_width: 4px;
+                            from_x: task.x;
+                            from_y: task.y;
+                            to_x: tasks[task.parent_index].x;
+                            to_y: tasks[task.parent_index].y;
+                        }
                     }
-
-                    // TODO: add a line from the active task to the cursor
                     if root.mode == AppMode.SetParent //
                     || root.mode == AppMode.AddChildren:
                     Edge {
@@ -289,7 +285,9 @@ export component AppWindow inherits Window {
                         moved_by(x, y) => {
                             task.x = x + task.x;
                             task.y = y + task.y;
-                            root.task_moved(task.id, task.x, task.y);
+                        }
+                        released => {
+                            root.task_moved_dropped(task.id, task.x, task.y);
                         }
                         delete_clicked() => {
                             root.delete_task(task.id);
