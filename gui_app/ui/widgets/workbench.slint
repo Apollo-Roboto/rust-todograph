@@ -1,9 +1,10 @@
 export component DragableRectangle inherits Rectangle {
     out property <bool> dragged: false;
+    out property <bool> has-hover <=> ta.has-hover;
     callback moved_by(x: length, y: length);
     callback clicked();
     callback released();
-    TouchArea {
+    ta := TouchArea {
         moved => {
             root.dragged = true;
             root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
@@ -113,6 +114,7 @@ export component WorkBench inherits Rectangle {
     in property <bool> show_position: true;
     in property <image> background_detail_image: @image-url("../assets/point_tile_c_150x150.png");
     in property <brush> background_detail_color: #ffffff;
+    out property <bool> has-hover <=> ta.has-hover;
     out property <bool> dragged: false;
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
@@ -156,7 +158,7 @@ export component WorkBench inherits Rectangle {
             height: parent.height;
         }
 
-        TouchArea {
+        ta := TouchArea {
             mouse-cursor: root.dragged ? MouseCursor.grabbing : MouseCursor.default;
             moved => {
                 root.dragged = true;

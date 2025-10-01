@@ -27,6 +27,7 @@ component TaskBubble {
     in property <brush> done_color: Styles.done_color;
     in property <bool> active: false;
     out property <bool> dragged <=> dr.dragged;
+    out property <bool> has-hover <=> dr.has-hover;
     callback clicked();
     callback released();
     callback add_children_clicked();
@@ -178,13 +179,14 @@ export component AppWindow inherits Window {
     in property <TaskSavingState> task_saving_state: TaskSavingState.None;
     in property <string> task_saving_error_message;
     in property <float> overall_progress: 0.0;
-    out property <AppMode> mode: AppMode.None;
     in property <int> active_task_index: -1;
     in property <int> history_past_count;
     in property <int> history_future_count;
     in property <int> history_limit;
     in property <string> last_command;
     in-out property <bool> debug_info: true;
+    out property <AppMode> mode: AppMode.None;
+    out property <int> hovered_task_index;
     callback refresh_other();
     callback refresh_tasks();
     callback load(path: string);
@@ -221,6 +223,11 @@ export component AppWindow inherits Window {
                     workbench_clicked => {
                         root.clear_active_task();
                         root.mode = AppMode.None;
+                    }
+                    changed has-hover => {
+                        if self.has-hover {
+                            root.hovered_task_index = -1;
+                        }
                     }
                     ContextMenuArea {
                         Menu {
@@ -277,11 +284,16 @@ export component AppWindow inherits Window {
                     // }
 
                     // place every tasks
-                    for task in tasks: TaskBubble {
+                    for task[index] in tasks: TaskBubble {
                         x: workbench.center_x + task.x - self.width / 2;
                         y: workbench.center_y + task.y - self.height / 2;
                         task: task;
                         active: root.active_task_index >= 0 && root.tasks[active_task_index].id == task.id;
+                        changed has-hover => {
+                            if self.has-hover {
+                                root.hovered_task_index = index;
+                            }
+                        }
                         moved_by(x, y) => {
                             task.x = x + task.x;
                             task.y = y + task.y;
@@ -356,6 +368,12 @@ export component AppWindow inherits Window {
                         text: root.active_task_index >= 0 //
                             ? "Active Task: #" + root.tasks[active_task_index].id //
                             : "Active Task: None";
+                    }
+
+                    Text {
+                        text: root.hovered_task_index >= 0 //
+                            ? "Hovered Task: #" + root.tasks[hovered_task_index].id //
+                            : "Hovered Task: None";
                     }
 
                     Text {
