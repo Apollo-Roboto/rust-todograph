@@ -69,21 +69,29 @@ impl Display for MindTaskState {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MindTask {
-    /// identifier of this task for relationships
+    /// Identifier of this task for relationships
     pub id: u32,
-    /// position on the map
+    /// Position on the map
+    #[serde(default)]
     pub pos: Point,
-    /// main name of the task, visible from the quick views
+    /// Main name of the task, visible from the quick views
     pub title: String,
-    /// current state
+    /// Detailed description of the task
+    #[serde(default)]
+    pub description: String,
+    /// Current state
+    #[serde(default)]
     pub state: MindTaskState,
-    /// when was this item created
+    /// When was this item created
     pub creation_date: chrono::DateTime<chrono::Utc>,
-    /// when was this item completed
+    /// When was this item completed
+    #[serde(default)]
     pub completion_date: Option<chrono::DateTime<chrono::Utc>>,
-    /// linked parent task if any, parent should contain this task's id as children
+    /// Linked parent task if any, parent should contain this task's id as children
+    #[serde(default)]
     pub parent: Option<u32>,
-    /// linked children tasks if any, children should contain this tasks's id as parent
+    /// Linked children tasks if any, children should contain this tasks's id as parent
+    #[serde(default)]
     pub childrens: HashSet<u32>,
 }
 
