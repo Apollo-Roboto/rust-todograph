@@ -253,15 +253,22 @@ export component AppWindow inherits Window {
                             to_y: tasks[task.parent_index].y;
                         }
                     }
+
+                    // preview edge for user feedback
+                    // will snap to the hovered task if any
                     if root.mode == AppMode.SetParent //
                     || root.mode == AppMode.AddChildren:
                     Edge {
-                        stroke: Styles.edge_color;
+                        stroke: Styles.temporary_edge_color;
                         stroke_width: 4px;
                         from_x: tasks[active_task_index].x;
                         from_y: tasks[active_task_index].y;
-                        to_x: workbench.mouse_pos_x;
-                        to_y: workbench.mouse_pos_y;
+                        to_x: root.hovered_task_index >= 0 //
+                            ? root.tasks[root.hovered_task_index].x //
+                            : workbench.mouse_pos_x;
+                        to_y: root.hovered_task_index >= 0 //
+                            ? root.tasks[root.hovered_task_index].y //
+                            : workbench.mouse_pos_y;
                     }
 
                     // temp bubble
