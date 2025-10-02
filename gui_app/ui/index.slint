@@ -367,8 +367,8 @@ export component AppWindow inherits Window {
                     Text {
                         font-family: parent.font;
                         text: root.last_command == "" //
-                            ? "Last command: None" //
-                            : "Last command: " + root.last_command;
+                            ? "Last Command: None" //
+                            : "Last Command: " + root.last_command;
                     }
 
                     Text {
@@ -383,7 +383,7 @@ export component AppWindow inherits Window {
 
                     Text {
                         font-family: parent.font;
-                        text: "Cursor position: (" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
+                        text: "Cursor Position: (" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
                     }
 
                     Text {
@@ -500,7 +500,7 @@ export component AppWindow inherits Window {
 
             FileDialogButton {
                 text: "Load";
-                title: "Load file";
+                title: "Load File";
                 filters: [{ text: "FireWork", extensions : ["fwork"] }];
                 type: FileDialogType.load;
                 picked(path) => {
@@ -509,15 +509,26 @@ export component AppWindow inherits Window {
                 }
             }
 
-            FileDialogButton {
-                text: "Save";
-                title: "Save file";
+            save_as_button := FileDialogButton {
+                text: "Save as";
+                title: "Save As";
                 filters: [{ text: "FireWork", extensions : ["fwork"] }];
                 default_file: root.current_file_path;
                 type: FileDialogType.save;
                 picked(path) => {
                     root.current_file_path = path;
                     root.save(path);
+                }
+            }
+
+            Button {
+                text: "Save";
+                clicked => {
+                    if root.current_file_path == "" {
+                        save_as_button.open();
+                    } else {
+                        root.save(root.current_file_path);
+                    }
                 }
             }
         }
