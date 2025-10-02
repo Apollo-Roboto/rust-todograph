@@ -15,6 +15,9 @@ mod ui {
 }
 mod widgets;
 
+const APPLICATION_VERSION: &str = env!("CARGO_PKG_VERSION");
+const APPLICATION_IS_RELEASE: bool = !cfg!(debug_assertions);
+
 impl From<MindTaskState> for ui::MindTaskState {
     fn from(value: MindTaskState) -> Self {
         match value {
@@ -104,6 +107,9 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
 
 fn main() {
     let main_window = ui::AppWindow::new().unwrap();
+
+    main_window.set_app_version(APPLICATION_VERSION.into());
+    main_window.set_is_release(APPLICATION_IS_RELEASE);
 
     widgets::setup_file_dialog_button(main_window.global::<ui::FileDialogButtonGlobal>());
 

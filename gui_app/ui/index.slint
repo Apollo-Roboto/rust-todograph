@@ -176,6 +176,8 @@ component TaskBubble {
 }
 
 export component AppWindow inherits Window {
+    in property <string> app_version;
+    in property <bool> is_release;
     in-out property <[MindTask]> tasks;
     in property <TaskLoadingState> task_loading_state: TaskLoadingState.None;
     in property <string> task_loading_error_message;
@@ -189,7 +191,7 @@ export component AppWindow inherits Window {
     in property <string> last_command;
     in-out property <bool> debug_info: true;
     out property <AppMode> mode: AppMode.None;
-    out property <int> hovered_task_index;
+    out property <int> hovered_task_index: -1;
     in-out property <string> current_file_path: "";
     callback refresh_other();
     callback refresh_tasks();
@@ -228,6 +230,11 @@ export component AppWindow inherits Window {
                     workbench_clicked => {
                         root.clear_active_task();
                         root.mode = AppMode.None;
+                    }
+                    workbench_double_clicked => {
+                        if root.mode == AppMode.None {
+                            root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                        }
                     }
                     changed has-hover => {
                         if self.has-hover {
@@ -357,6 +364,11 @@ export component AppWindow inherits Window {
                     visible: root.debug_info;
                     alignment: start;
                     private property <string> font: "Consolas";
+                    Text {
+                        font-family: parent.font;
+                        text: "Version: " + root.app_version + " (" + (root.is_release ? "Release" : "Development") + ")";
+                    }
+
                     Text {
                         font-family: parent.font;
                         text: root.current_file_path == "" //

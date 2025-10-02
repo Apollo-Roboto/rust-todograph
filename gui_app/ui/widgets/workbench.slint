@@ -128,6 +128,7 @@ export component WorkBench inherits Rectangle {
     out property <length> mouse_pos_y;
     callback moved_by(x: length, y: length);
     callback workbench_clicked();
+    callback workbench_double_clicked();
     public function move_view_to(x: length, y: length) {
         work_area.x = root.width / 2 - x;
         work_area.y = root.height / 2 - y;
@@ -171,6 +172,11 @@ export component WorkBench inherits Rectangle {
             clicked => {
                 if root.dragged == false {
                     root.workbench_clicked();
+                }
+            }
+            double-clicked => {
+                if root.dragged == false {
+                    root.workbench_double_clicked();
                 }
             }
             pointer-event(event) => {
