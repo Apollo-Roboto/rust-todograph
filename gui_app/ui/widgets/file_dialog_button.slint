@@ -1,0 +1,71 @@
+import { Button } from "std-widgets.slint";
+
+export enum FileDialogType {
+    save,
+    load,
+}
+
+struct FileDialogFilter {
+    text: string,
+    extensions: [string],
+}
+
+enum FileDialogResultStatus {
+    closed,
+    picked,
+}
+
+struct FileDialogResult {
+    status: FileDialogResultStatus,
+    file: string,
+}
+
+export global FileDialogButtonGlobal {
+    callback open(title: string, directory: string, filters: [FileDialogFilter], default_file: string, dialog_type: FileDialogType) -> FileDialogResult;
+}
+
+// TODO: Async version, how does it know it is closed?
+//
+// I could have a result property and listen to changes to it
+// property <int> dialog_result <=> Global.dialog_result;
+// changed dialog_result => {
+//   handle thingy
+// }
+//
+// but that makes it possible to conflict with other filedialog button
+// somedaywill have to experiment with a solution
+
+export component FileDialogButton {
+    in property <string> text <=> b.text;
+    in property <bool> enabled <=> b.enabled;
+    in property <string> directory;
+    in property <[FileDialogFilter]> filters;
+    in property <string> title: root.type == FileDialogType.load ? "Load" : "Save";
+    in property <string> default_file;
+    in property <FileDialogType> type: FileDialogType.load;
+    out property <bool> is_opened: false;
+    callback picked(string);
+    callback closed();
+    callback opened();
+    public function open() {
+        root.is_opened = true;
+        root.opened();
+        let result = FileDialogButtonGlobal.open(title, directory, filters, default_file, root.type);
+        if result.status == FileDialogResultStatus.closed {
+            root.is_opened = false;
+            root.closed();
+            return;
+        }
+        if result.status == FileDialogResultStatus.picked {
+            root.is_opened = false;
+            root.picked(result.file);
+            return;
+        }
+    }
+    b := Button {
+        text: root.type == FileDialogType.load ? "Load" : "Save";
+        clicked => {
+            root.open()
+        }
+    }
+}

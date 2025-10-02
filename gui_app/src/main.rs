@@ -13,6 +13,7 @@ use slint::ComponentHandle;
 mod ui {
     slint::include_modules!();
 }
+mod widgets;
 
 impl From<MindTaskState> for ui::MindTaskState {
     fn from(value: MindTaskState) -> Self {
@@ -103,6 +104,9 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
 
 fn main() {
     let main_window = ui::AppWindow::new().unwrap();
+
+    widgets::setup_file_dialog_button(main_window.global::<ui::FileDialogButtonGlobal>());
+
     let mut editor = Editor::default();
     main_window.set_history_limit(editor.history.limit() as i32);
 

@@ -7,6 +7,9 @@ import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 import { ThemeSwitch } from "widgets/theme_switch.slint";
+import { FileDialogButton, FileDialogType } from "widgets/file_dialog_button.slint";
+
+export { FileDialogButtonGlobal } from "widgets/file_dialog_button.slint";
 
 enum TaskLoadingState {
     None, Loading, Error,
@@ -187,6 +190,7 @@ export component AppWindow inherits Window {
     in-out property <bool> debug_info: true;
     out property <AppMode> mode: AppMode.None;
     out property <int> hovered_task_index;
+    in-out property <string> current_file_path: "";
     callback refresh_other();
     callback refresh_tasks();
     callback load(path: string);
@@ -355,6 +359,25 @@ export component AppWindow inherits Window {
                     private property <string> font: "Consolas";
                     Text {
                         font-family: parent.font;
+                        text: root.current_file_path == "" //
+                            ? "Current File: None" //
+                            : "Current File: " + root.current_file_path;
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: root.last_command == "" //
+                            ? "Last command: None" //
+                            : "Last command: " + root.last_command;
+                    }
+
+                    Text {
+                        font-family: parent.font;
+                        text: "History Past/Future: " + root.history_past_count + "/" + root.history_future_count + " (" + root.history_limit + ")";
+                    }
+
+                    Text {
+                        font-family: parent.font;
                         text: "View Position: (" + Math.round(workbench.view_pos_x / 1px) + "," + Math.round(workbench.view_pos_y / 1px) + ")";
                     }
 
@@ -390,18 +413,6 @@ export component AppWindow inherits Window {
                             : root.mode == AppMode.AddChildren ? "Application Mode: AddChildren" //
                             : root.mode == AppMode.SetParent ? "Application Mode: SetParent" //
                             : "Mode: AAAAAAAAAAAAA";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "History Past/Future: " + root.history_past_count + "/" + root.history_future_count + " (" + root.history_limit + ")";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: root.last_command == "" //
-                            ? "Last command: None" //
-                            : "Last command: " + root.last_command;
                     }
                 }
             }
@@ -487,19 +498,26 @@ export component AppWindow inherits Window {
                 checked <=> root.debug_info;
             }
 
-            Button {
+            FileDialogButton {
                 text: "Load";
-                clicked => {
-                    root.load("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
-                    // root.load("/media/apollo/tipitytapity/repositories/apollo-roboto/rust-firework/resources/sample_tasks.json");
+                title: "Load file";
+                filters: [{ text: "FireWork", extensions : ["fwork"] }];
+                type: FileDialogType.load;
+                picked(path) => {
+                    root.current_file_path = path;
+                    root.load(path);
                 }
             }
 
-            Button {
+            FileDialogButton {
                 text: "Save";
-                clicked => {
-                    root.save("D:\\repositories\\apollo-roboto\\rust-firework\\resources\\sample_tasks.json");
-                    // root.save("/media/apollo/tipitytapity/repositories/apollo-roboto/rust-firework/resources/sample_tasks.json");
+                title: "Save file";
+                filters: [{ text: "FireWork", extensions : ["fwork"] }];
+                default_file: root.current_file_path;
+                type: FileDialogType.save;
+                picked(path) => {
+                    root.current_file_path = path;
+                    root.save(path);
                 }
             }
         }
