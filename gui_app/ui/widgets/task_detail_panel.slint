@@ -44,6 +44,8 @@ component PriorityFocusLineEdit {
     out property <string> original_text;
     callback changed(string);
     callback submitted(string);
+    callback canceled();
+    callback no_change();
     property <bool> popup_opened: false;
     /// cancel the interaction
     public function cancel() {
@@ -51,6 +53,7 @@ component PriorityFocusLineEdit {
         root.popup_opened = false;
         popup.close();
         root.changed(original_text);
+        root.canceled();
     }
     /// submit the change in the text
     function submit(text: string) {
@@ -130,6 +133,7 @@ component PriorityFocusLineEdit {
                 if !self.has-focus {
                     root.popup_opened = false;
                     popup.close();
+                    root.no_change();
                 }
             }
         }
@@ -150,6 +154,8 @@ component PriorityFocusTextEdit {
     out property <string> original_text;
     callback changed(string);
     callback submitted(string);
+    callback canceled();
+    callback no_change();
     property <bool> popup_opened: false;
     /// cancel the interaction
     public function cancel() {
@@ -157,6 +163,7 @@ component PriorityFocusTextEdit {
         root.popup_opened = false;
         popup.close();
         root.changed(original_text);
+        root.canceled();
     }
     /// submit the change in the text
     function submit(text: string) {
@@ -237,6 +244,7 @@ component PriorityFocusTextEdit {
                 if !self.has-focus {
                     root.popup_opened = false;
                     popup.close();
+                    root.no_change();
                 }
             }
         }
@@ -246,6 +254,10 @@ component PriorityFocusTextEdit {
 export component TaskDetailPanel inherits Rectangle {
     in property <MindTask> task;
     in property <bool> show: false;
+    /// this is called when the textbox super focus thing is done
+    /// text box at the momment locks the whole interface
+    /// still not sure if that is a good idea
+    callback lock_released();
     callback title_changed(string);
     callback title_submitted(string);
     callback notes_submitted(string);
@@ -283,7 +295,14 @@ export component TaskDetailPanel inherits Rectangle {
                     root.title_changed(text);
                 }
                 submitted(text) => {
+                    root.lock_released();
                     root.title_submitted(text);
+                }
+                canceled() => {
+                    root.lock_released();
+                }
+                no_change() => {
+                    root.lock_released();
                 }
             }
         }
@@ -325,7 +344,14 @@ export component TaskDetailPanel inherits Rectangle {
             vertical-stretch: 1;
             text: task.notes;
             submitted(text) => {
+                root.lock_released();
                 root.notes_submitted(text);
+            }
+            canceled() => {
+                root.lock_released();
+            }
+            no_change() => {
+                root.lock_released();
             }
         }
 
