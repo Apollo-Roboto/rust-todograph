@@ -18,7 +18,7 @@ import_commands! {
     delete_task::DeleteTaskCommand,
     duplicate_task::DuplicateTaskCommand,
     set_task_active::SetTaskActiveCommand,
-    set_task_description::SetTaskDescriptionCommand,
+    set_task_notes::SetTaskNotesCommand,
     set_task_parent::SetTaskParentCommand,
     set_task_position::SetTaskPositionCommand,
     set_task_state::SetTaskStateCommand,

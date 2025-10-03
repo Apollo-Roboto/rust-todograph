@@ -63,7 +63,7 @@ fn editor_task_to_ui_task(task_id: u32, editor: &Editor) -> Result<ui::MindTask,
         parent_index,
         state: task.state.into(),
         title: task.title.clone().into(),
-        description: task.description.clone().into(),
+        notes: task.notes.clone().into(),
         x: task.pos.x,
         y: task.pos.y,
     })
@@ -97,7 +97,7 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
                 parent_index,
                 state: task.state.into(),
                 title: task.title.clone().into(),
-                description: task.description.clone().into(),
+                notes: task.notes.clone().into(),
                 x: task.pos.x,
                 y: task.pos.y,
             }
@@ -403,11 +403,11 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_set_task_description(move |task_id, description| {
+    main_window.on_set_task_notes(move |task_id, notes| {
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::SetTaskDescriptionCommand::new(
+        let cmd = Box::new(commands::SetTaskNotesCommand::new(
             task_id as u32,
-            description.into(),
+            notes.into(),
         ));
         editor.execute(cmd).unwrap();
         handle_task_change(&main_window_weak, editor);

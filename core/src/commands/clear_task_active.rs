@@ -17,7 +17,7 @@ impl ClearTaskActiveCommand {
 }
 impl Display for ClearTaskActiveCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Clearing active task")
+        write!(f, "Clear active task")
     }
 }
 impl Command for ClearTaskActiveCommand {

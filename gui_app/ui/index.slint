@@ -208,7 +208,7 @@ export component AppWindow inherits Window {
     callback change_state(id: int, state: MindTaskState);
     callback task_moved_dropped(id: int, x: length, y: length);
     callback rename_task(id: int, title: string);
-    callback set_task_description(id: int, description: string);
+    callback set_task_notes(id: int, description: string);
     callback set_active_task(id: int);
     callback clear_active_task();
     public function refresh_all() {
@@ -433,21 +433,21 @@ export component AppWindow inherits Window {
             TaskDetailPanel {
                 task: root.tasks[active_task_index];
                 show: root.active_task_index != -1;
-                width: 400px;
+                width: 380px;
                 delete_clicked => {
                     root.delete_task(root.tasks[active_task_index].id);
                 }
-                title_changed(title) => {
-                    root.tasks[active_task_index].title = title;
+                title_changed(value) => {
+                    root.tasks[active_task_index].title = value;
                 }
-                title_submitted(title) => {
-                    root.rename_task(root.tasks[active_task_index].id, title);
+                title_submitted(value) => {
+                    root.rename_task(root.tasks[active_task_index].id, value);
                 }
-                description_submitted(description) => {
-                    root.set_task_description(root.tasks[active_task_index].id, description);
+                notes_submitted(value) => {
+                    root.set_task_notes(root.tasks[active_task_index].id, value);
                 }
-                state_changed(state) => {
-                    root.change_state(root.tasks[active_task_index].id, state);
+                state_changed(value) => {
+                    root.change_state(root.tasks[active_task_index].id, value);
                 }
             }
         }

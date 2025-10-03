@@ -248,7 +248,7 @@ export component TaskDetailPanel inherits Rectangle {
     in property <bool> show: false;
     callback title_changed(string);
     callback title_submitted(string);
-    callback description_submitted(string);
+    callback notes_submitted(string);
     callback state_changed(MindTaskState);
     callback delete_clicked();
     if !root.show:
@@ -318,14 +318,14 @@ export component TaskDetailPanel inherits Rectangle {
 
         Text {
             font-family: "Consolas";
-            text: "Description:";
+            text: "Notes:";
         }
 
         PriorityFocusTextEdit {
             vertical-stretch: 1;
-            text: task.description;
+            text: task.notes;
             submitted(text) => {
-                root.description_submitted(text);
+                root.notes_submitted(text);
             }
         }
 

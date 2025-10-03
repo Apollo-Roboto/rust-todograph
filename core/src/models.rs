@@ -76,9 +76,9 @@ pub struct MindTask {
     pub pos: Point,
     /// Main name of the task, visible from the quick views
     pub title: String,
-    /// Detailed description of the task
+    /// Detailed notes of the task
     #[serde(default)]
-    pub description: String,
+    pub notes: String,
     /// Current state
     #[serde(default)]
     pub state: MindTaskState,
