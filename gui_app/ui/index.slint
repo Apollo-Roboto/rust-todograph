@@ -528,27 +528,6 @@ export component AppWindow inherits Window {
             }
 
             Button {
-                text: "Clear Active";
-                clicked => {
-                    root.clear_active_task();
-                }
-            }
-
-            Button {
-                text: "Reset Mode";
-                clicked => {
-                    root.mode = AppMode.None;
-                }
-            }
-
-            Button {
-                text: "Refresh All";
-                clicked => {
-                    root.refresh_all();
-                }
-            }
-
-            Button {
                 text: "Undo";
                 enabled: root.history_past_count > 0;
                 clicked => {
