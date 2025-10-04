@@ -1,6 +1,6 @@
-use std::fmt::Display;
-
 use crate::editor::EditorState;
+use log::trace;
+use std::fmt::Display;
 
 /// Utility macro to import and then reexport each commands, this makes less lines I guess
 macro_rules! import_commands {
@@ -71,7 +71,7 @@ impl EditorCommandHistory {
         mut cmd: Box<dyn Command>,
         editor: &mut EditorState,
     ) -> Result<(), String> {
-        println!("Executing command {cmd}");
+        trace!("Executing {cmd}");
 
         cmd.execute(editor)?;
 
@@ -93,7 +93,7 @@ impl EditorCommandHistory {
             return Ok(());
         };
 
-        println!("Undoing command {cmd}");
+        trace!("Undoing {cmd}");
 
         cmd.undo(editor)?;
 
@@ -109,7 +109,7 @@ impl EditorCommandHistory {
             return Ok(());
         };
 
-        println!("Redoing command {cmd}");
+        trace!("Redoing {cmd}");
 
         cmd.execute(editor)?;
 

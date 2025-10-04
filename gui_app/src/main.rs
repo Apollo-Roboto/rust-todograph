@@ -1,12 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(unused)]
 
-use std::sync::{Arc, Mutex, MutexGuard};
-
+use log::info;
+use rust_firework_core::LOGGER;
 use rust_firework_core::commands;
 use rust_firework_core::commands::Command;
 use rust_firework_core::editor::EditorEvent;
 use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use slint::ComponentHandle;
 
@@ -106,6 +107,15 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
 }
 
 fn main() {
+    log::set_logger(&LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Trace);
+
+    info!(
+        "Application version: {} ({})",
+        crate::APPLICATION_VERSION,
+        crate::APPLICATION_IS_RELEASE
+    );
+
     let main_window = ui::AppWindow::new().unwrap();
 
     main_window.set_app_version(APPLICATION_VERSION.into());
@@ -431,7 +441,11 @@ fn main() {
         handle_active_task_change(&main_window_weak, editor);
     });
 
+    info!("Starting application");
+
     main_window.run().unwrap();
+
+    info!("Bye bye!");
 }
 
 fn handle_active_task_change(

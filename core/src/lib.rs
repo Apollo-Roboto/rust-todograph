@@ -1,10 +1,12 @@
 pub mod commands;
 pub mod editor;
 pub mod graph;
+mod logger;
 mod models;
 
 pub use editor::Editor;
 pub use graph::TaskGraph;
+pub use logger::LOGGER;
 pub use models::*;
 
 const APPLICATION_VERSION: &str = env!("CARGO_PKG_VERSION");

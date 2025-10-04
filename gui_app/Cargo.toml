@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-slint = "1.13.1"
 chrono = { workspace = true, features = ["serde"] }
+log = { workspace = true }
 rfd = { workspace = true }
 rust-firework-core = { path = "../core" }
+slint = "1.13.1"
 
 [build-dependencies]
 slint-build = "1.13.1"

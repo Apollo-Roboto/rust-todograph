@@ -1,15 +1,15 @@
 #![allow(unused)]
-use std::{
-    collections::{HashMap, HashSet},
-    fs::OpenOptions,
-    path::Path,
-};
-
-use serde::Serialize;
-
 use crate::{
     MindTask, Point, SaveData, SaveDataMetadata, TaskGraph,
     commands::{Command, EditorCommandHistory},
+};
+use log::{debug, info, warn};
+use serde::Serialize;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    fs::OpenOptions,
+    path::Path,
 };
 
 type EventCallbackFunction = Box<dyn Fn(&Editor, EditorEvent) + Send + Sync + 'static>;
@@ -55,22 +55,26 @@ impl Editor {
     }
 
     /// Load from a file
-    pub fn load(&mut self, path: impl AsRef<Path>) -> Result<(), String> {
+    pub fn load(&mut self, path: impl AsRef<Path> + Debug + Clone) -> Result<(), String> {
+        debug!("Loading {path:?}");
         let file = OpenOptions::new()
             .write(false)
             .read(true)
-            .open(path)
+            .open(path.clone())
             .map_err(|e| e.to_string())?;
 
         let data: SaveData = serde_json::from_reader(file).map_err(|e| e.to_string())?;
 
         self.state.graph = TaskGraph::from(data.tasks);
 
+        info!("Loaded {path:?}");
+
         Ok(())
     }
 
     /// Save to a file
-    pub fn save(&self, path: impl AsRef<Path>) -> Result<(), String> {
+    pub fn save(&self, path: impl AsRef<Path> + Debug + Clone) -> Result<(), String> {
+        debug!("Saving {path:?}");
         let data = SaveData {
             metadata: SaveDataMetadata {
                 version: crate::APPLICATION_VERSION.to_string(),
@@ -83,14 +87,18 @@ impl Editor {
             .create(true)
             .truncate(true)
             .append(false)
-            .open(path)
+            .open(path.clone())
             .map_err(|e| e.to_string())?;
 
         match crate::APPLICATION_IS_RELEASE {
             false => serde_json::to_writer_pretty(file, &data),
             true => serde_json::to_writer(file, &data),
         }
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+        info!("Saved {path:?}");
+
+        Ok(())
     }
 
     pub fn execute(&mut self, cmd: Box<dyn Command>) -> Result<(), String> {
@@ -100,7 +108,7 @@ impl Editor {
                 self.invoke_on_event(EditorEvent::CommandSuccess);
             }
             Err(e) => {
-                println!("Command execution error: {e}");
+                warn!("Command error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
@@ -115,7 +123,7 @@ impl Editor {
                 self.invoke_on_event(EditorEvent::CommandSuccess);
             }
             Err(e) => {
-                println!("Command undo error: {e}");
+                warn!("Undo error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
@@ -129,7 +137,7 @@ impl Editor {
                 self.invoke_on_event(EditorEvent::CommandSuccess);
             }
             Err(e) => {
-                println!("Command redo error: {e}");
+                warn!("Redo error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
