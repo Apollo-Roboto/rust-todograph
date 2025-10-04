@@ -12,6 +12,8 @@ use crate::{
     commands::{Command, EditorCommandHistory},
 };
 
+type EventCallbackFunction = Box<dyn Fn(&Editor, EditorEvent) + Send + Sync + 'static>;
+
 pub enum EditorEvent {
     /// temporary I guess
     None,
@@ -36,7 +38,7 @@ pub struct EditorState {
 pub struct Editor {
     pub history: EditorCommandHistory,
     pub state: EditorState,
-    event_callback: Box<dyn Fn(&Editor, EditorEvent) -> () + 'static>,
+    event_callback: EventCallbackFunction,
 }
 impl Default for Editor {
     fn default() -> Self {
@@ -48,7 +50,7 @@ impl Default for Editor {
     }
 }
 impl Editor {
-    pub fn on_event(&mut self, func: impl Fn(&Editor, EditorEvent) -> () + 'static) {
+    pub fn on_event(&mut self, func: impl Fn(&Editor, EditorEvent) + Send + Sync + 'static) {
         self.event_callback = Box::new(func);
     }
 
@@ -136,7 +138,7 @@ impl Editor {
     }
 
     fn invoke_on_event(&self, event: EditorEvent) {
-        (self.event_callback)(&self, event);
+        (self.event_callback)(self, event);
     }
 }
 

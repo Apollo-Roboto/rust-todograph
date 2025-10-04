@@ -4,15 +4,13 @@ use crate::commands::{Command, SetTaskActiveCommand};
 use crate::editor::EditorState;
 
 /// Set a task to active
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ClearTaskActiveCommand {
     previous_active_task: Option<u32>,
 }
 impl ClearTaskActiveCommand {
     pub fn new() -> Self {
-        Self {
-            previous_active_task: None,
-        }
+        Self::default()
     }
 }
 impl Display for ClearTaskActiveCommand {

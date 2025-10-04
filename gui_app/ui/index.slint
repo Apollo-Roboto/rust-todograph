@@ -189,7 +189,7 @@ export component AppWindow inherits Window {
     in property <int> history_future_count;
     in property <int> history_limit;
     in property <string> last_command;
-    in-out property <bool> debug_info: true;
+    in-out property <bool> debug_info: !is_release;
     out property <AppMode> mode: AppMode.None;
     out property <int> hovered_task_index: -1;
     in-out property <string> current_file_path: "";

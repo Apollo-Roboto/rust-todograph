@@ -187,6 +187,7 @@ component PriorityFocusTextEdit {
         text: root.text;
         enabled: root.enabled;
         placeholder-text: root.placeholder-text;
+        wrap: TextWrap.word-wrap;
         changed has-focus => {
             if self.has-focus {
                 self.clear-focus();
@@ -286,7 +287,7 @@ export component TaskDetailPanel inherits Rectangle {
             Text {
                 font-family: "Consolas";
                 vertical-alignment: center;
-                text: "Title";
+                text: "Title: ";
             }
 
             PriorityFocusLineEdit {
