@@ -140,37 +140,38 @@ impl TaskGraph {
         }
     }
 
-    /// Calculate the progress of a task, 0.0 to 1.0, None if not found
-    /// If todo or doing, calculates from children completion
-    /// If done, returns 1.0
     pub fn calc_progress(&self, task_id: u32) -> Option<f32> {
-        // navigate all children of a task to find how complete it is
-
         let task = self.tasks.iter().find(|t| t.id == task_id)?;
 
-        if task.state == MindTaskState::Done {
-            return Some(1.0);
+        if task.childrens.is_empty() {
+            let value = match task.state {
+                MindTaskState::Todo => 0.0,
+                MindTaskState::Doing => 0.0,
+                MindTaskState::Done => 1.0,
+            };
+            return Some(value);
         }
-
-        let mut current_percent = 0.;
-
         let child_count = task.childrens.len() as f32;
+
+        let mut current_percent = 0.0;
 
         for children_id in &task.childrens {
             let Some(children) = self.tasks.iter().find(|t| t.id == *children_id) else {
                 unreachable!("Children should always exists");
             };
 
-            let child_progress = self.calc_progress(children.id).unwrap_or(0.0);
-            current_percent += child_progress / child_count;
+            if children.state == MindTaskState::Done {
+                current_percent += 1.0 / child_count;
+                continue;
+            }
+
+            let child_completion = self.calc_progress(children.id).unwrap_or(0.0);
+            current_percent += child_completion / child_count;
         }
 
         Some(current_percent)
     }
 
-    /// Calculate the progress of all task, 0.0 to 1.0, None if not found
-    /// If todo or doing, calculates from children completion
-    /// If done, returns 1.0
     pub fn calc_progress_all(&self) -> Option<f32> {
         if self.tasks.is_empty() {
             return None;
@@ -255,48 +256,80 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_calc_progress() {
-        let manager = TaskGraph {
-            tasks: vec![
-                MindTask {
-                    id: 0,
-                    state: MindTaskState::Doing,
-                    parent: None,
-                    childrens: HashSet::from([1, 2, 3]),
-                    ..Default::default()
-                },
-                MindTask {
-                    id: 1,
-                    state: MindTaskState::Todo,
-                    parent: Some(0),
-                    ..Default::default()
-                },
-                MindTask {
-                    id: 2,
-                    state: MindTaskState::Done,
-                    parent: Some(0),
-                    ..Default::default()
-                },
-                MindTask {
-                    id: 3,
-                    state: MindTaskState::Done,
-                    parent: Some(0),
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-
-        assert_eq!(manager.calc_progress(0), Some(0.666_666_7));
-
-        let manager = TaskGraph {
-            tasks: vec![MindTask {
+    fn test_calc_progress_simple() {
+        let graph = TaskGraph::from(vec![
+            MindTask {
                 id: 0,
+                state: MindTaskState::Doing,
+                parent: None,
+                childrens: HashSet::from([1, 2, 3]),
                 ..Default::default()
-            }],
-            ..Default::default()
-        };
+            },
+            MindTask {
+                id: 1,
+                state: MindTaskState::Todo,
+                parent: Some(0),
+                ..Default::default()
+            },
+            MindTask {
+                id: 2,
+                state: MindTaskState::Done,
+                parent: Some(0),
+                ..Default::default()
+            },
+            MindTask {
+                id: 3,
+                state: MindTaskState::Done,
+                parent: Some(0),
+                ..Default::default()
+            },
+        ]);
 
-        assert_eq!(manager.calc_progress(0), Some(0.0));
+        assert_eq!(graph.calc_progress(0), Some(0.666_666_7));
+        assert_eq!(graph.calc_progress(1), Some(0.0));
+        assert_eq!(graph.calc_progress(2), Some(1.0));
+    }
+
+    #[test]
+    fn test_calc_progress_complex() {
+        let graph = TaskGraph::from(vec![
+            MindTask {
+                id: 1,
+                state: MindTaskState::Doing,
+                childrens: HashSet::from([2, 3]),
+                ..Default::default()
+            },
+            MindTask {
+                id: 2,
+                state: MindTaskState::Done,
+                parent: Some(1),
+                childrens: HashSet::from([4, 5]),
+                ..Default::default()
+            },
+            MindTask {
+                id: 3,
+                state: MindTaskState::Doing,
+                parent: Some(1),
+                ..Default::default()
+            },
+            MindTask {
+                id: 4,
+                state: MindTaskState::Todo,
+                parent: Some(2),
+                ..Default::default()
+            },
+            MindTask {
+                id: 5,
+                state: MindTaskState::Done,
+                parent: Some(2),
+                ..Default::default()
+            },
+        ]);
+
+        assert_eq!(graph.calc_progress(1), Some(0.5));
+        assert_eq!(graph.calc_progress(2), Some(0.5));
+        assert_eq!(graph.calc_progress(3), Some(0.0));
+        assert_eq!(graph.calc_progress(4), Some(0.0));
+        assert_eq!(graph.calc_progress(5), Some(1.0));
     }
 }
