@@ -10,4 +10,7 @@ serde_json = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 directories = "6.0.0"
 
+[dev-dependencies]
+tempfile = { workspace = true }
+
 [build-dependencies]

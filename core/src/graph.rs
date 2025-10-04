@@ -16,55 +16,6 @@ pub struct TaskGraph {
 }
 
 impl TaskGraph {
-    /// Load all tasks from a file
-    pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
-        let file = OpenOptions::new()
-            .write(false)
-            .read(true)
-            .open(path)
-            .map_err(|e| e.to_string())?;
-
-        let tasks: Vec<MindTask> = serde_json::from_reader(file).map_err(|e| e.to_string())?;
-
-        // todo check relationships
-        // - no loops
-        // - if parent doesn't exists, set parent to None
-        // - if children doesn't exists, remove it
-        // - if the current task is in doing, ensure the parent is also in doing
-
-        // find the last id for the counter
-        let mut last_id = 0;
-        tasks.iter().for_each(|t| {
-            if t.id > last_id {
-                last_id = t.id
-            }
-        });
-
-        Ok(Self {
-            tasks,
-            id_counter: last_id,
-        })
-    }
-
-    /// Save all tasks to a file
-    pub fn save(&self, path: impl AsRef<Path>) -> Result<(), String> {
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .append(false)
-            .open(path)
-            .map_err(|e| e.to_string())?;
-
-        match crate::DEVELOPMENT {
-            true => serde_json::to_writer_pretty(file, &self.tasks),
-            false => serde_json::to_writer(file, &self.tasks),
-        }
-        .map_err(|e| e.to_string())?;
-
-        Ok(())
-    }
-
     /// Generate a unique id
     pub fn generate_id(&mut self) -> u32 {
         self.id_counter += 1;
@@ -280,6 +231,22 @@ impl TaskGraph {
     }
 }
 
+impl From<Vec<MindTask>> for TaskGraph {
+    fn from(tasks: Vec<MindTask>) -> Self {
+        let mut last_id = 0;
+        tasks.iter().for_each(|t| {
+            if t.id > last_id {
+                last_id = t.id
+            }
+        });
+
+        Self {
+            tasks,
+            id_counter: last_id,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
@@ -331,14 +298,5 @@ mod test {
         };
 
         assert_eq!(manager.calc_progress(0), Some(0.0));
-    }
-
-    #[test]
-    fn test_load_does_not_fails() {
-        let file_path =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/sample_tasks.json");
-        let res = TaskGraph::load(file_path);
-
-        res.expect("Failed to load file");
     }
 }

@@ -103,3 +103,14 @@ impl MindTask {
         self.childrens.is_empty()
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveData {
+    pub metadata: SaveDataMetadata,
+    pub tasks: Vec<MindTask>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveDataMetadata {
+    pub version: String,
+}

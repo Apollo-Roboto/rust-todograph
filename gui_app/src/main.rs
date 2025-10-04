@@ -205,7 +205,7 @@ fn main() {
         main_window.set_history_limit(editor.history.limit() as i32);
         main_window.set_last_command(slint::SharedString::new());
 
-        editor.state.graph = TaskGraph::load(&path).unwrap();
+        editor.load(&path).unwrap();
 
         // avoid deadlock from the next invoke
         std::mem::drop(editor);
@@ -222,7 +222,7 @@ fn main() {
 
         let editor = editor_clone.lock().unwrap();
 
-        match editor.state.graph.save(&path) {
+        match editor.save(&path) {
             Ok(_) => {
                 main_window.set_task_saving_state(ui::TaskSavingState::None);
             }

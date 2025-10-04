@@ -7,4 +7,5 @@ pub use editor::Editor;
 pub use graph::TaskGraph;
 pub use models::*;
 
-const DEVELOPMENT: bool = true;
+const APPLICATION_VERSION: &str = env!("CARGO_PKG_VERSION");
+const APPLICATION_IS_RELEASE: bool = !cfg!(debug_assertions);
