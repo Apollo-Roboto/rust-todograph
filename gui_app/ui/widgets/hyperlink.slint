@@ -1,0 +1,53 @@
+import { VerticalBox, Button } from "std-widgets.slint";
+import { Styles } from "../styles.slint";
+
+export global HyperlinkGlobal {
+    callback open(path: string);
+}
+
+export component HyperlinkText {
+    /// path to open
+    in property <string> path;
+    // TODO: color should be light blue on dark theme
+    in property <brush> color: Styles.hyperlink;
+    // text properties
+    in property <string> text <=> t.text;
+    in property <length> font-size <=> t.font-size;
+    in property <string> font-family <=> t.font-family;
+    in property <bool> font-italic <=> t.font-italic;
+    in property <int> font-weight <=> t.font-weight;
+    out property <FontMetrics> font-metrics <=> t.font-metrics;
+    width: t.width;
+    callback clicked();
+    t := Text {
+        color: root.color;
+    }
+
+    TouchArea {
+        width: t.width;
+        height: t.height;
+        x: t.x;
+        y: t.y;
+        mouse-cursor: MouseCursor.pointer;
+        clicked => {
+            HyperlinkGlobal.open(root.path);
+            root.clicked();
+        }
+    }
+
+    // underline
+    Rectangle {
+        width: t.width;
+        height: 1px;
+        x: t.x;
+        y: t.y + t.height - self.height;
+        background: root.color;
+    }
+}
+
+export component HyperlinkButton inherits Button {
+    in property <string> path;
+    clicked => {
+        HyperlinkGlobal.open(path);
+    }
+}

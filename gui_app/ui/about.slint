@@ -1,0 +1,64 @@
+import { VerticalBox, AboutSlint, Palette } from "std-widgets.slint";
+import { HyperlinkText } from "widgets/hyperlink.slint";
+
+
+
+export component AboutWindowContent inherits Rectangle {
+    in property <string> version: "x.x.x";
+    background: Palette.background;
+    width: 435px;
+    height: 260px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: black;
+    TouchArea { }
+
+    Image {
+        source: @image-url("./assets/apollo_by_maudoggo.png");
+        width: 120px;
+        x: 325px;
+        y: 148px;
+    }
+
+    VerticalBox {
+        alignment: center;
+        Text {
+            horizontal-alignment: center;
+            font-size: 22px;
+            text: "Project Firework";
+        }
+
+        Text {
+            horizontal-alignment: center;
+            text: "An experimental planning tool";
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            Rectangle {
+                height: 2px;
+                width: 300px;
+                background: Palette.accent-background;
+            }
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            Text {
+                text: "Made with lots of distraction by ";
+            }
+
+            HyperlinkText {
+                text: "Apollo-Roboto";
+                path: "https://github.com/Apollo-Roboto";
+            }
+        }
+
+        Text {
+            horizontal-alignment: center;
+            text: "Version: " + root.version;
+        }
+    }
+}

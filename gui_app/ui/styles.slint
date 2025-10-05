@@ -2,6 +2,8 @@ import { MindTaskState } from "models.slint";
 import { Palette } from "std-widgets.slint";
 
 export global Styles {
+    in-out property <color> hyperlink: Palette.color-scheme == ColorScheme.dark //
+        ? #8686fa : #0808fa;
     in-out property <color> todo_color: Palette.color-scheme == ColorScheme.dark //
         ? #333333 //
         : #b8b8b8;

@@ -8,8 +8,10 @@ import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 import { ThemeSwitch } from "widgets/theme_switch.slint";
 import { FileDialogButton, FileDialogType } from "widgets/file_dialog_button.slint";
+import { AboutWindowContent } from "about.slint";
 
 export { FileDialogButtonGlobal } from "widgets/file_dialog_button.slint";
+export { HyperlinkGlobal } from "widgets/hyperlink.slint";
 
 enum TaskLoadingState {
     None, Loading, Error,
@@ -223,7 +225,7 @@ export component AppWindow inherits Window {
             root.save(root.current_file_path);
         }
     }
-    preferred-width: 600px;
+    preferred-width: 800px;
     preferred-height: 600px;
     forward-focus: window_focus;
     window_focus := FocusScope {
@@ -269,6 +271,24 @@ export component AppWindow inherits Window {
                 return EventResult.accept;
             }
             return EventResult.reject;
+        }
+    }
+
+    about_window := PopupWindow {
+        width: root.width;
+        height: root.height;
+        close-policy: PopupClosePolicy.no-auto-close;
+        Rectangle {
+            background: #00000055;
+            TouchArea {
+                clicked => {
+                    about_window.close();
+                }
+            }
+        }
+
+        AboutWindowContent {
+            version: root.app_version + " (" + (root.is_release ? "Release" : "Development") + ")";
         }
     }
 
@@ -552,6 +572,13 @@ export component AppWindow inherits Window {
             CheckBox {
                 text: "Debug Info";
                 checked <=> root.debug_info;
+            }
+
+            Button {
+                text: "About";
+                clicked => {
+                    about_window.show();
+                }
             }
 
             load_button := FileDialogButton {

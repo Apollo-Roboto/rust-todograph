@@ -113,7 +113,11 @@ fn main() {
     info!(
         "Application version: {} ({})",
         crate::APPLICATION_VERSION,
-        crate::APPLICATION_IS_RELEASE
+        if crate::APPLICATION_IS_RELEASE {
+            "Release"
+        } else {
+            "Development"
+        }
     );
 
     let main_window = ui::AppWindow::new().unwrap();
@@ -122,6 +126,7 @@ fn main() {
     main_window.set_is_release(APPLICATION_IS_RELEASE);
 
     widgets::setup_file_dialog_button(main_window.global::<ui::FileDialogButtonGlobal>());
+    widgets::setup_hyperlink(main_window.global::<ui::HyperlinkGlobal>());
 
     let mut editor = Editor::default();
     main_window.set_history_limit(editor.history.limit() as i32);
