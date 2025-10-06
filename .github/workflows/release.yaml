@@ -3,12 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - "test*"
+      - "v*.*.*"
 
-# on:
-#   push:
-#     branches:
-#       - gh_action
 env:
   CARGO_TERM_COLOR: always
 
@@ -34,10 +30,12 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
     runs-on: ${{ matrix.builds.os }}
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Build
+        shell: bash
         run: cargo build --release --target "${{ matrix.builds.target }}"
 
       - name: Tests
@@ -62,6 +60,7 @@ jobs:
           # 7z a $ARCHIVE_NAME "License"
 
       - name: Upload
+        shell: bash
         run: |
           gh release upload ${{ github.ref_name }} $ARCHIVE_NAME
         env:
@@ -76,6 +75,6 @@ jobs:
 
       - name: Publish release
         run: |
-          echo would run "gh release edit ${{ github.ref_name }} --draft=false"
+          gh release edit ${{ github.ref_name }} --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
