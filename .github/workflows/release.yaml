@@ -44,6 +44,7 @@ jobs:
         run: cargo test
 
       - name: Package
+        shell: bash
         run: |
           export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
