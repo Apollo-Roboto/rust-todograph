@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create release --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}"
-        run: gh release create "${{ github.ref_name }}" --draft
+      - name: Create GitHub Release
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" --draft
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release:
+  build:
     needs:
       - prepare
     strategy:
@@ -46,9 +46,9 @@ jobs:
       - name: Package
         run: |
           export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
-          echo "::set-env name=ARCHIVE_NAME::$FOO"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
-          if [ '${{ matrix.builds.os }}' == 'windows-latest' ]; then
+          if [ "${{ matrix.builds.os }}" = "windows-latest" ]; then
             7z a -stl $ARCHIVE_NAME "./target/release/rust-firework-gui-app.exe" "./target/release/rust-firework-cli-app.exe"
             7z rn $ARCHIVE_NAME "./target/release/rust-firework-gui-app.exe" firework.exe
             7z rn $ARCHIVE_NAME "./target/release/rust-firework-cli-app.exe" firework-cli.exe
@@ -68,7 +68,7 @@ jobs:
 
   publish:
     needs:
-      - release
+      - build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
