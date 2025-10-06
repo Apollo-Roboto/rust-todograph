@@ -1,14 +1,14 @@
 name: Release
 
-# on:
-#   push:
-#     tags:
-#       - "v*.*.*"
-
 on:
   push:
-    branches:
-      - gh_action
+    tags:
+      - "test*"
+
+# on:
+#   push:
+#     branches:
+#       - gh_action
 env:
   CARGO_TERM_COLOR: always
 
@@ -16,14 +16,14 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - name: Testenin
-        run: echo "this is a test"
-  #     - name: Create release --title "v0.1.0" --notes "Release v0.1.0"
-  #       run: gh release create "v0.1.0" --draft
-  #       env:
-  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}"
+        run: gh release create "${{ github.ref_name }}" --draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
+    needs:
+      - prepare
     strategy:
       matrix:
         builds:
@@ -35,45 +35,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Testenin
-        run: echo ${{ matrix.builds.os }} ${{ matrix.builds.target }}
+      - name: Build
+        run: cargo build --release --target "${{ matrix.builds.target }}"
 
-      # - name: Build
-      #   run: cargo build --release --target ${{ matrix.builds.target }}
+      - name: Tests
+        run: cargo test
 
-      # - name: Tests
-      #   run: cargo test
+      - name: Package
+        run: |
+          export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
+          echo "::set-env name=ARCHIVE_NAME::$FOO"
 
-      # - name: Package
-      #   run: |
-      #     export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
-      #     echo "::set-env name=ARCHIVE_NAME::$FOO"
+          if [ '${{ matrix.builds.os }}' == 'windows-latest' ]; then
+            7z a -stl $ARCHIVE_NAME "./target/release/rust-firework-gui-app.exe" "./target/release/rust-firework-cli-app.exe"
+            7z rn $ARCHIVE_NAME "./target/release/rust-firework-gui-app.exe" firework.exe
+            7z rn $ARCHIVE_NAME "./target/release/rust-firework-cli-app.exe" firework-cli.exe
+          else
+            7z a -stl $ARCHIVE_NAME "./target/release/rust-firework-gui-app" "./target/release/rust-firework-cli-app" 
+            7z rn $ARCHIVE_NAME "./target/release/rust-firework-gui-app" firework
+            7z rn $ARCHIVE_NAME "./target/release/rust-firework-cli-app" firework-cli
+          fi
 
-      #     if [ '${{ matrix.builds.os }}' == 'windows-latest' ]; then
-      #       export GUI_FILE="./target/release/rust-firework-gui-app.exe"
-      #       export CLI_FILE="./target/release/rust-firework-cli-app.exe"
-      #     else
-      #       export GUI_FILE="./target/release/rust-firework-gui-app"
-      #       export CLI_FILE="./target/release/rust-firework-cli-app"
-      #     fi
+          # 7z a $ARCHIVE_NAME "License"
 
-      #     7z a -stl $ARCHIVE_NAME $GUI_FILE $CLI_FILE "License"
-      #     7z rn $ARCHIVE_NAME GUI_FILE firework.exe
-      #     7z rn $ARCHIVE_NAME CLI_FILE firework-cli.exe
-
-      # - name: Upload
-      #   run: |
-      #     gh release upload v0.1.0 $ARCHIVE_NAME
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload
+        run: |
+          gh release upload ${{ github.ref_name }} $ARCHIVE_NAME
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
+    needs:
+      - release
     runs-on: ubuntu-latest
     steps:
-      - name: Testenin
-        run: echo "this is a test"
-  #     - name: Publish release
-  #       run: |
-  #         echo would run "gh release edit v0.1.0 --draft=false"
-  #       env:
-  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release
+        run: |
+          echo would run "gh release edit ${{ github.ref_name }} --draft=false"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
