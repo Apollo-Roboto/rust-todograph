@@ -49,13 +49,13 @@ jobs:
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
           if [ "${{ matrix.builds.os }}" = "windows-latest" ]; then
-            7z a -stl $ARCHIVE_NAME "./target/release/rust-firework-gui-app.exe" "./target/release/rust-firework-cli-app.exe"
-            7z rn $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app.exe" firework.exe
-            7z rn $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app.exe" firework-cli.exe
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app.exe" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app.exe"
+            7z rn $ARCHIVE_NAME rust-firework-gui-app.exe firework.exe
+            7z rn $ARCHIVE_NAME rust-firework-cli-app.exe firework-cli.exe
           else
-            7z a -stl $ARCHIVE_NAME "./target/release/rust-firework-gui-app" "./target/release/rust-firework-cli-app" 
-            7z rn $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app" firework
-            7z rn $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app" firework-cli
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app" 
+            7z rn $ARCHIVE_NAME rust-firework-gui-app firework
+            7z rn $ARCHIVE_NAME rust-firework-cli-app firework-cli
           fi
 
           # 7z a $ARCHIVE_NAME "License"
