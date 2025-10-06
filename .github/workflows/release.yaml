@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" --draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs:
+      - prepare
+    strategy:
+      matrix:
+        builds:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+    runs-on: ${{ matrix.builds.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: bash
+        run: cargo build --release --target "${{ matrix.builds.target }}"
+
+      - name: Tests
+        run: cargo test
+
+      - name: Package
+        shell: bash
+        run: |
+          export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          if [ "${{ matrix.builds.os }}" = "windows-latest" ]; then
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app.exe" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app.exe"
+            7z rn $ARCHIVE_NAME rust-firework-gui-app.exe firework.exe
+            7z rn $ARCHIVE_NAME rust-firework-cli-app.exe firework-cli.exe
+          else
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app" 
+            7z rn $ARCHIVE_NAME rust-firework-gui-app firework
+            7z rn $ARCHIVE_NAME rust-firework-cli-app firework-cli
+          fi
+
+          # 7z a $ARCHIVE_NAME "License"
+
+      - name: Upload
+        shell: bash
+        run: |
+          gh release upload ${{ github.ref_name }} $ARCHIVE_NAME
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish release
+        run: |
+          gh release edit ${{ github.ref_name }} --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
