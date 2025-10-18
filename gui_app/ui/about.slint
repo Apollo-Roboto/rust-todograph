@@ -1,13 +1,22 @@
 import { VerticalBox, AboutSlint, Palette } from "std-widgets.slint";
 import { HyperlinkText } from "widgets/hyperlink.slint";
 
-
+component HorizontalLine inherits HorizontalLayout {
+    alignment: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    Rectangle {
+        height: 2px;
+        width: 300px;
+        background: Palette.accent-background;
+    }
+}
 
 export component AboutWindowContent inherits Rectangle {
     in property <string> version: "x.x.x";
     background: Palette.background;
     width: 435px;
-    height: 260px;
+    height: 300px;
     border-radius: 6px;
     border-width: 1px;
     border-color: black;
@@ -17,7 +26,7 @@ export component AboutWindowContent inherits Rectangle {
         source: @image-url("./assets/apollo_by_maudoggo.png");
         width: 120px;
         x: 325px;
-        y: 148px;
+        y: 187px;
     }
 
     VerticalBox {
@@ -33,16 +42,7 @@ export component AboutWindowContent inherits Rectangle {
             text: "An experimental planning tool";
         }
 
-        HorizontalLayout {
-            alignment: center;
-            padding-top: 10px;
-            padding-bottom: 10px;
-            Rectangle {
-                height: 2px;
-                width: 300px;
-                background: Palette.accent-background;
-            }
-        }
+        HorizontalLine { }
 
         HorizontalLayout {
             alignment: center;
@@ -59,6 +59,12 @@ export component AboutWindowContent inherits Rectangle {
         Text {
             horizontal-alignment: center;
             text: "Version: " + root.version;
+        }
+
+        HorizontalLine { }
+
+        AboutSlint {
+            height: 105px;
         }
     }
 }
