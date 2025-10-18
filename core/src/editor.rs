@@ -27,11 +27,10 @@ pub enum EditorEvent {
     SavingFailed(String),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct EditorState {
     pub graph: TaskGraph,
     pub active_task: Option<u32>,
-    pub selected_tasks: HashSet<u32>,
     pub pan_zoom: (Point, f32),
 }
 
@@ -56,6 +55,7 @@ impl Editor {
 
     /// Load from a file
     pub fn load(&mut self, path: impl AsRef<Path> + Debug + Clone) -> Result<(), String> {
+        let start = std::time::Instant::now();
         debug!("Loading {path:?}");
         let file = OpenOptions::new()
             .write(false)
@@ -67,13 +67,17 @@ impl Editor {
 
         self.state.graph = TaskGraph::from(data.tasks);
 
-        info!("Loaded {path:?}");
+        let end = std::time::Instant::now();
+        let time_to_load = end - start;
+
+        info!("Loaded {path:?} [{time_to_load:?}]");
 
         Ok(())
     }
 
     /// Save to a file
     pub fn save(&self, path: impl AsRef<Path> + Debug + Clone) -> Result<(), String> {
+        let start = std::time::Instant::now();
         debug!("Saving {path:?}");
         let data = SaveData {
             metadata: SaveDataMetadata {
@@ -96,7 +100,10 @@ impl Editor {
         }
         .map_err(|e| e.to_string())?;
 
-        info!("Saved {path:?}");
+        let end = std::time::Instant::now();
+        let time_to_save = end - start;
+
+        info!("Saved {path:?} in [{time_to_save:?}]");
 
         Ok(())
     }

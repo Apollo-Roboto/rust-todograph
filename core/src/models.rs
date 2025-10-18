@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -24,6 +24,20 @@ impl Point {
     pub const ZERO: Self = Self { x: 0., y: 0. };
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
+    }
+    pub fn is_within(&self, p1: Point, p2: Point) -> bool {
+        let (min_x, max_x) = if p1.x < p2.x {
+            (p1.x, p2.x)
+        } else {
+            (p2.x, p1.x)
+        };
+        let (min_y, max_y) = if p1.y < p2.y {
+            (p1.y, p2.y)
+        } else {
+            (p2.y, p1.y)
+        };
+
+        self.x >= min_x && self.x <= max_x && self.y >= min_y && self.y <= max_y
     }
 }
 
@@ -67,13 +81,18 @@ impl Display for MindTaskState {
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MindTask {
     /// Identifier of this task for relationships
     pub id: u32,
     /// Position on the map
     #[serde(default)]
     pub pos: Point,
+    /// Is selected.
+    ///
+    /// Note: this is not serialized
+    #[serde(skip)]
+    pub selected: bool,
     /// Main name of the task, visible from the quick views
     pub title: String,
     /// Detailed notes of the task
@@ -113,4 +132,33 @@ pub struct SaveData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDataMetadata {
     pub version: String,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_point_is_within() {
+        assert_eq!(
+            Point::new(0., 0.).is_within(Point::new(-1., -1.), Point::new(1., 1.)),
+            true
+        );
+        assert_eq!(
+            Point::new(0., 0.).is_within(Point::new(-1., 1.), Point::new(1., -1.)),
+            true
+        );
+        assert_eq!(
+            Point::new(10., 16.).is_within(Point::new(0., 0.), Point::new(100., 100.)),
+            true
+        );
+        assert_eq!(
+            Point::new(0., 0.).is_within(Point::new(-1., -1.), Point::new(-10., -10.)),
+            false
+        );
+        assert_eq!(
+            Point::new(-15., 5.).is_within(Point::new(17., 25.), Point::new(18., 30.)),
+            false
+        );
+    }
 }

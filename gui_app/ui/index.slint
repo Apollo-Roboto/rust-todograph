@@ -1,6 +1,6 @@
 import { Button, VerticalBox, HorizontalBox, LineEdit, Palette, TextEdit, CheckBox, Switch } from "std-widgets.slint";
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
-import { Styles } from "styles.slint";
+import { Styles, Func } from "global.slint";
 import { MindTask, MindTaskState } from "models.slint";
 import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
@@ -9,9 +9,11 @@ import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 import { ThemeSwitch } from "widgets/theme_switch.slint";
 import { FileDialogButton, FileDialogType } from "widgets/file_dialog_button.slint";
 import { AboutWindowContent } from "about.slint";
+import { SelectionRectangle } from "widgets/selection_rectangle.slint";
 
 export { FileDialogButtonGlobal } from "widgets/file_dialog_button.slint";
 export { HyperlinkGlobal } from "widgets/hyperlink.slint";
+export { Func }
 
 enum TaskLoadingState {
     None, Loading, Error,
@@ -25,7 +27,7 @@ enum AppMode {
 
 component TaskBubble {
     in property <MindTask> task;
-    in property <bool> extra_info: false;
+    in property <bool> debug_info: false;
     in property <brush> default_color: Styles.todo_color;
     in property <brush> todo_color: Styles.todo_color;
     in property <brush> doing_color: Styles.doing_color;
@@ -129,13 +131,17 @@ component TaskBubble {
             }
 
             VerticalLayout {
-                Bubble {
+                bubble := Bubble {
                     text: task.title;
                     background: task.state == MindTaskState.Todo ? todo_color //
                       : task.state == MindTaskState.Doing ? doing_color //
-                      : task.state == MindTaskState.Done ? done_color // 
+                      : task.state == MindTaskState.Done ? done_color //
                       : default_color;
-                    border-color: root.active ? Styles.active_color : black;
+                    border-color: root.active //
+                                ? Styles.active_color //
+                                : task.selected //
+                                ? Styles.selected_color //
+                                : black;
                     drop-shadow-color: dragged ? #00000055 : #00000000;
                     drop-shadow-blur: dragged ? 20px : 0px;
                     drop-shadow-offset-x: 5px;
@@ -155,22 +161,27 @@ component TaskBubble {
                         }
                     }
                 }
+            }
 
-                if extra_info:
-                HorizontalLayout {
+            if debug_info:
+            VerticalBox {
+                y: bubble.y + bubble.height;
+                alignment: start;
+                property <string> font: "Consolas";
+                Text {
+                    font-family: font;
+                    text: "#" + root.task.id + " (" + Math.round(root.task.completion * 100) + "%)";
+                }
+
+                if root.active:
                     Text {
-                        font-family: "Consolas";
-                        text: Math.round(task.completion * 100) + "%";
-                    }
-
-                    Rectangle {
-                        horizontal-stretch: 1;
-                    }
-
+                    font-family: font;
+                    text: "Active";
+                }
+                if task.selected:
                     Text {
-                        font-family: "Consolas";
-                        text: task.id;
-                    }
+                    font-family: font;
+                    text: "Selected";
                 }
             }
         }
@@ -214,6 +225,13 @@ export component AppWindow inherits Window {
     callback set_task_notes(id: int, description: string);
     callback set_active_task(id: int);
     callback clear_active_task();
+    callback clear_selection();
+    callback select_all();
+    callback set_selection_from_box(length, length, length, length);
+    // callback add_selection_from_box(length, length, length, length);
+    // callback remove_selection_from_box(length, length, length, length);
+    // callback add_to_selection(id: int);
+    // callback remove_from_selection(id: int);
     public function refresh_all() {
         root.refresh_tasks();
         root.refresh_other();
@@ -230,6 +248,14 @@ export component AppWindow inherits Window {
     forward-focus: window_focus;
     window_focus := FocusScope {
         key-pressed(event) => {
+            if event.text.to-lowercase() == "a" && event.modifiers.control && event.modifiers.shift {
+                root.clear_selection();
+                return EventResult.accept;
+            }
+            if event.text.to-lowercase() == "a" && event.modifiers.control {
+                root.select_all();
+                return EventResult.accept;
+            }
             if event.text.to-lowercase() == "z" && event.modifiers.control && event.modifiers.shift {
                 root.redo();
                 return EventResult.accept;
@@ -302,15 +328,20 @@ export component AppWindow inherits Window {
                     debug_info: root.debug_info;
                     background: Styles.workbench_background_color;
                     background_detail_color: Styles.workbench_background_details_color;
+                    selection_rectangle_border: Styles.selection_rectangle_border;
+                    selection_rectangle_fill: Styles.selection_rectangle_fill;
                     workbench_clicked => {
                         root.focus();
-                        root.clear_active_task();
+                        root.clear_selection();
                         root.mode = AppMode.None;
                     }
                     workbench_double_clicked => {
                         if root.mode == AppMode.None {
                             root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
+                    }
+                    workbench_box_selected(x1, y1, x2, y2) => {
+                        root.set_selection_from_box(x1, y1, x2, y2);
                     }
                     changed has-hover => {
                         if self.has-hover {
@@ -364,6 +395,7 @@ export component AppWindow inherits Window {
                     //     x: workbench.center_x + self.task.x - self.width / 2;
                     //     y: workbench.center_y + self.task.y - self.height / 2;
                     //     active: false;
+                    //     debug_info: root.debug_info;
                     //     task: {
                     //         id: 55,
                     //         title: "Meow Meow Meow",
@@ -384,6 +416,7 @@ export component AppWindow inherits Window {
                         y: workbench.center_y + task.y - self.height / 2;
                         task: task;
                         active: root.active_task_index >= 0 && root.tasks[active_task_index].id == task.id;
+                        debug_info: root.debug_info;
                         changed has-hover => {
                             if self.has-hover {
                                 root.hovered_task_index = index;

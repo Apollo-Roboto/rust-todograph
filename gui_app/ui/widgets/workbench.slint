@@ -1,3 +1,6 @@
+import { SelectionRectangle } from "selection_rectangle.slint";
+import { Palette } from "std-widgets.slint";
+
 export component DragableRectangle inherits Rectangle {
     out property <bool> dragged: false;
     out property <bool> has-hover <=> ta.has-hover;
@@ -89,7 +92,7 @@ component WorkAreaDebugLimit inherits Rectangle {
         x: 0;
         y: root.height - self.height;
     }
-    // bottom right corner 
+    // bottom right corner
     Rectangle {
         background: line_color;
         width: line_thickness;
@@ -114,8 +117,10 @@ export component WorkBench inherits Rectangle {
     in property <bool> show_position: true;
     in property <image> background_detail_image: @image-url("../assets/point_tile_c_150x150.png");
     in property <brush> background_detail_color: #ffffff;
+    in property <color> selection_rectangle_border: Palette.accent-background;
+    in property <color> selection_rectangle_fill: #00000000;
     out property <bool> has-hover <=> ta.has-hover;
-    out property <bool> dragged: false;
+    out property <bool> is_panning: false;
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
     // View position x from the center of the viewport
@@ -126,9 +131,16 @@ export component WorkBench inherits Rectangle {
     out property <length> mouse_pos_x;
     /// Mouse position y relative from the center of the workbench
     out property <length> mouse_pos_y;
+    out property <length> panning_start_y;
+    out property <length> panning_start_x;
+    /// Is the user performing a selection
+    out property <bool> is_selecting: false;
+    out property <length> selection_start_x;
+    out property <length> selection_start_y;
     callback moved_by(x: length, y: length);
     callback workbench_clicked();
     callback workbench_double_clicked();
+    callback workbench_box_selected(length, length, length, length);
     public function move_view_to(x: length, y: length) {
         work_area.x = root.width / 2 - x;
         work_area.y = root.height / 2 - y;
@@ -141,8 +153,6 @@ export component WorkBench inherits Rectangle {
     border-width: 1px;
     border-radius: 6px;
     init => {
-        // initial call to move to the center prevents a jump when the workbench is resized
-        // or at least I think it changes the origin to the top left somehow, not sure what's going on
         root.move_view_to(root.center_x, root.center_y);
     }
 
@@ -160,33 +170,60 @@ export component WorkBench inherits Rectangle {
         }
 
         ta := TouchArea {
-            mouse-cursor: root.dragged ? MouseCursor.grabbing : MouseCursor.default;
-            moved => {
-                root.dragged = true;
-                work_area.x = self.mouse-x - self.pressed-x + work_area.x;
-                work_area.y = self.mouse-y - self.pressed-y + work_area.y;
-                root.view_pos_x = -(center_x + work_area.x - root.width / 2);
-                root.view_pos_y = -(center_y + work_area.y - root.height / 2);
-                root.moved_by(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
-            }
-            clicked => {
-                if root.dragged == false {
-                    root.workbench_clicked();
-                }
-            }
+            mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
             double-clicked => {
-                if root.dragged == false {
-                    root.workbench_double_clicked();
+                if root.is_panning {
+                    return;
                 }
+                root.workbench_double_clicked();
             }
             pointer-event(event) => {
+                if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                    if root.is_selecting == false {
+                        root.selection_start_x = self.mouse-x - root.center_x;
+                        root.selection_start_y = self.mouse-y - root.center_y;
+                        root.is_selecting = true;
+                    }
+                    return;
+                }
                 if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
-                    root.dragged = false;
+                    // check if the cursor moved at all, no movement shouldn't trigger the selected callback
+                    if root.selection_start_x == self.mouse-x - root.center_x && root.selection_start_y == self.mouse-y - root.center_y {
+                        root.is_selecting = false;
+                        root.workbench_clicked();
+                        return;
+                    }
+                    root.workbench_box_selected(
+                            root.selection_start_x,
+                            root.selection_start_y,
+                            self.mouse-x - root.center_x,
+                            self.mouse-y - root.center_y //
+                        );
+                    root.is_selecting = false;
+                    return;
+                }
+                if event.button == PointerEventButton.middle && event.kind == PointerEventKind.down {
+                    root.is_panning = true;
+                    root.panning_start_x = self.mouse-x;
+                    root.panning_start_y = self.mouse-y;
+                    return;
+                }
+                if event.button == PointerEventButton.middle && event.kind == PointerEventKind.up {
+                    root.is_panning = false;
+                    return;
                 }
                 if event.kind == PointerEventKind.move {
                     // owo <- this comment was written without my explicit consent, I do not agree with those words
-                    root.mouse_pos_x = self.mouse-x - center_x;
-                    root.mouse_pos_y = self.mouse-y - center_y;
+                    root.mouse_pos_x = self.mouse-x - root.center_x;
+                    root.mouse_pos_y = self.mouse-y - root.center_y;
+                    if root.is_panning {
+                        work_area.x = self.mouse-x - root.panning_start_x + work_area.x;
+                        work_area.y = self.mouse-y - root.panning_start_y + work_area.y;
+                        root.view_pos_x = -(root.center_x + work_area.x - root.width / 2);
+                        root.view_pos_y = -(root.center_y + work_area.y - root.height / 2);
+                        root.moved_by(self.mouse-x - root.panning_start_x, self.mouse-y - root.panning_start_y);
+                    }
+                    return;
                 }
             }
         }
@@ -195,6 +232,17 @@ export component WorkBench inherits Rectangle {
         WorkAreaDebugLimit {
             line_color: root.background_detail_color;
         }
+        //
         @children
+        //
+        if root.is_selecting:
+        SelectionRectangle {
+            anchor_x: root.selection_start_x + root.center_x;
+            anchor_y: root.selection_start_y + root.center_y;
+            mouse_x: root.mouse_pos_x + root.center_x;
+            mouse_y: root.mouse_pos_y + root.center_y;
+            border-color: root.selection_rectangle_border;
+            background: root.selection_rectangle_fill;
+        }
     }
 }

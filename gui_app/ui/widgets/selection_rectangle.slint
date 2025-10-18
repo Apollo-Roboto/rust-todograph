@@ -1,0 +1,23 @@
+
+/// given an anchor and a mouse position, the rectangle will follow the cursor
+export component SelectionRectangle inherits Rectangle {
+    in property <length> anchor_x;
+    in property <length> anchor_y;
+    in property <length> mouse_x;
+    in property <length> mouse_y;
+    out property <bool> is_west: self.mouse_x < self.anchor_x;
+    out property <bool> is_north: self.mouse_y < self.anchor_y;
+    border-width: 1px;
+    width: self.is_west //
+         ? self.anchor_x - self.mouse_x //
+         : self.mouse_x - self.x;
+    height: self.is_north //
+          ? self.anchor_y - self.mouse_y //
+          : self.mouse_y - self.y;
+    x: self.is_west //
+     ? self.mouse_x //
+     : self.anchor_x;
+    y: self.is_north //
+     ? self.mouse_y //
+     : self.anchor_y;
+}

@@ -9,7 +9,7 @@ pub use crate::models::*;
 
 // TODO: Experiment with Petgraph
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct TaskGraph {
     pub tasks: Vec<MindTask>,
     id_counter: u32,

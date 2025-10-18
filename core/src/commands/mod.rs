@@ -13,10 +13,15 @@ macro_rules! import_commands {
 }
 
 import_commands! {
+    add_to_selection::AddToSelectionCommand,
+    clear_selection::ClearSelectionCommand,
     clear_task_active::ClearTaskActiveCommand,
     create_task::CreateTaskCommand,
     delete_task::DeleteTaskCommand,
     duplicate_task::DuplicateTaskCommand,
+    remove_from_selection::RemoveFromSelectionCommand,
+    select_all::SelectAllCommand,
+    set_selection::SetSelectionCommand,
     set_task_active::SetTaskActiveCommand,
     set_task_notes::SetTaskNotesCommand,
     set_task_parent::SetTaskParentCommand,

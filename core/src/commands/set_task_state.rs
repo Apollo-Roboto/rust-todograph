@@ -45,3 +45,44 @@ impl Command for SetTaskStateCommand {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_undo_redo() {
+        let mut state = EditorState::default();
+        let mut cmd = SetTaskStateCommand::new(1, MindTaskState::Doing);
+
+        let id1 = state.graph.generate_id();
+        state.graph.tasks.push(crate::MindTask {
+            id: id1,
+            ..Default::default()
+        });
+        let id2 = state.graph.generate_id();
+        state.graph.tasks.push(crate::MindTask {
+            id: id2,
+            parent: Some(id1),
+            ..Default::default()
+        });
+
+        let state_before_execute = state.clone();
+
+        cmd.execute(&mut state).unwrap();
+        assert_ne!(
+            state_before_execute, state,
+            "The state was supposed to change"
+        );
+        cmd.undo(&mut state).unwrap();
+        assert_eq!(
+            state_before_execute, state,
+            "The state was supposed to be identical to before"
+        );
+        cmd.execute(&mut state).unwrap();
+        assert_ne!(
+            state_before_execute, state,
+            "The state was supposed to change"
+        );
+    }
+}

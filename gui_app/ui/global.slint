@@ -16,9 +16,15 @@ export global Styles {
     in-out property <color> danger_color: Palette.color-scheme == ColorScheme.dark //
         ? #ac372f //
         : #d85147;
+    in-out property <color> selection_rectangle_border: Palette.color-scheme == ColorScheme.dark //
+        ? #cccccc //
+        : #555555;
+    in-out property <color> selection_rectangle_fill: Palette.color-scheme == ColorScheme.dark //
+        ? #ffffff08 //
+        : #00000010;
     in-out property <color> selected_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ffa300 //
-        : #ffa600;
+        ? #0051ff //
+        : #0051ff;
     in-out property <color> active_color: Palette.color-scheme == ColorScheme.dark //
         ? #ffa300 //
         : #ffa600;
@@ -46,4 +52,10 @@ export global Styles {
         }
         return self.todo_color;
     }
+}
+
+/// A global implementation of various functionalities, extending what's cabable in slint
+/// All callback here is most likely going to be implemented in Rust
+export global Func {
+    pure callback num_in_array(n: int, arr: [int]) -> bool;
 }

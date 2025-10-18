@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::commands::{Command, SetTaskActiveCommand};
+use crate::commands::Command;
 use crate::editor::EditorState;
 
 /// Set a task to active
@@ -30,12 +30,8 @@ impl Command for ClearTaskActiveCommand {
     }
 
     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        match self.previous_active_task {
-            Some(id) => {
-                let mut cmd = SetTaskActiveCommand::new(id);
-                cmd.execute(editor)
-            }
-            None => Ok(()),
-        }
+        editor.active_task = self.previous_active_task;
+
+        Ok(())
     }
 }

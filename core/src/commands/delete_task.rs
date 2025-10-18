@@ -3,7 +3,6 @@ use std::fmt::Display;
 use crate::MindTask;
 use crate::commands::Command;
 use crate::commands::CreateTaskCommand;
-use crate::commands::SetTaskActiveCommand;
 use crate::editor::EditorState;
 
 /// Delete a task
@@ -38,11 +37,11 @@ impl Command for DeleteTaskCommand {
     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
         let mut cmd = CreateTaskCommand::new(self.task_to_delete.clone());
         cmd.execute(editor)?;
+
         if let Some(was_active) = self.was_active
             && was_active
         {
-            let mut cmd = SetTaskActiveCommand::new(self.task_to_delete.id);
-            cmd.execute(editor)?;
+            editor.active_task = Some(self.task_to_delete.id);
         }
         Ok(())
     }
