@@ -20,7 +20,7 @@ impl AddToSelectionCommand {
 }
 impl Display for AddToSelectionCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Added {} tasks to selection", self.task_ids.len())
+        write!(f, "Add {} items to selection", self.task_ids.len())
     }
 }
 impl Command for AddToSelectionCommand {

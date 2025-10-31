@@ -267,10 +267,7 @@ fn main() {
         let mut editor = editor_clone.lock().unwrap();
 
         editor.undo().unwrap();
-
-        // avoid deadlock from the next invoke
         std::mem::drop(editor);
-
         main_window.invoke_refresh_all();
     });
 
@@ -283,10 +280,7 @@ fn main() {
         let mut editor = editor_clone.lock().unwrap();
 
         editor.redo().unwrap();
-
-        // avoid deadlock from the next invoke
         std::mem::drop(editor);
-
         main_window.invoke_refresh_all();
     });
 
@@ -297,32 +291,12 @@ fn main() {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let Some(task) = editor
-            .state
-            .graph
-            .tasks
-            .iter()
-            .find(|t| t.id == task_id as u32)
-        else {
-            return;
-        };
-        let cmd = Box::new(commands::DeleteTaskCommand::new(task.clone()));
+
+        let cmd = Box::new(commands::DeleteTaskCommand::new(task_id as u32));
         editor.execute(cmd).unwrap();
-
-        if let Some(active_task_index) = editor
-            .state
-            .graph
-            .tasks
-            .iter()
-            .position(|t| Some(t.id) == editor.state.active_task)
-        {
-            main_window.set_active_task_index(active_task_index as i32);
-        } else {
-            main_window.set_active_task_index(-1);
-        }
-
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
+        main_window.invoke_refresh_other();
     });
 
     let main_window_weak = main_window.as_weak();
@@ -384,12 +358,12 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_duplicate_task(move |task_id, _x, _y| {
+    main_window.on_duplicate_selected(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::DuplicateTaskCommand::new(task_id as u32));
+        let cmd = Box::new(commands::DuplicateSelectedCommand::new());
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
@@ -397,16 +371,15 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_task_moved_dropped(move |task_id, x, y| {
+    main_window.on_selected_move_dropped(move |x, y| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::SetTaskPositionCommand::new(
-            task_id as u32,
-            Point { x, y },
-        ));
+        let cmd = Box::new(commands::MoveSelectedPositionCommand::new(Point { x, y }));
         editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
     });
 
     let main_window_weak = main_window.as_weak();
@@ -480,7 +453,7 @@ fn main() {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::SetTaskActiveCommand::new(task_id as u32, false));
+        let cmd = Box::new(commands::SetActiveCommand::new(task_id as u32, false));
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
@@ -494,7 +467,7 @@ fn main() {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::ClearTaskActiveCommand::new());
+        let cmd = Box::new(commands::ClearActiveCommand::new());
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
@@ -549,10 +522,26 @@ fn main() {
         };
         let mut editor = editor_clone.lock().unwrap();
 
-        let cmd = Box::new(commands::SelectAllCommand::new());
+        let cmd = Box::new(commands::AddAllToSelectionCommand::new());
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
+        main_window.invoke_refresh_other();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_delete_selected(move || {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let mut editor = editor_clone.lock().unwrap();
+
+        let cmd = Box::new(commands::DeleteSelectedCommand::new());
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+        main_window.invoke_refresh_other();
     });
 
     info!("Starting application");

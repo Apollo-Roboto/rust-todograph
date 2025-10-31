@@ -1,4 +1,13 @@
-import { Button, VerticalBox, HorizontalBox, LineEdit, Palette, TextEdit, CheckBox, Switch } from "std-widgets.slint";
+import {
+    Button,
+    VerticalBox,
+    HorizontalBox,
+    LineEdit,
+    Palette,
+    TextEdit,
+    CheckBox,
+    Switch,
+} from "std-widgets.slint";
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
 import { Styles, Func } from "global.slint";
 import { MindTask, MindTaskState } from "models.slint";
@@ -7,7 +16,10 @@ import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
 import { ThemeSwitch } from "widgets/theme_switch.slint";
-import { FileDialogButton, FileDialogType } from "widgets/file_dialog_button.slint";
+import {
+    FileDialogButton,
+    FileDialogType,
+} from "widgets/file_dialog_button.slint";
 import { AboutWindowContent } from "about.slint";
 import { SelectionRectangle } from "widgets/selection_rectangle.slint";
 
@@ -33,27 +45,27 @@ component TaskBubble {
     in property <brush> doing_color: Styles.doing_color;
     in property <brush> done_color: Styles.done_color;
     in property <bool> active: false;
-    out property <bool> dragged <=> dr.dragged;
-    out property <bool> has-hover <=> dr.has-hover;
-    callback clicked();
-    callback released();
+    out property <bool> has-hover <=> ta.has-hover;
     callback add_children_clicked();
     callback delete_clicked();
-    callback duplicate_clicked();
+    callback left_mouse_down();
+    callback left_mouse_up();
     callback moved_by(x: length, y: length);
     callback new_children_clicked();
     callback remove_parent_clicked();
     callback set_parent_clicked();
     callback state_change_clicked(state: MindTaskState);
-    dr := DragableRectangle {
-        moved_by(x, y) => {
-            root.moved_by(x, y);
-        }
-        clicked => {
-            root.clicked();
-        }
-        released => {
-            root.released();
+    ta := TouchArea {
+        pointer-event(event) => {
+            // QUESTION: should I just pass over the pointer event callback?
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                root.left_mouse_down();
+                return;
+            }
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+                root.left_mouse_up();
+                return;
+            }
         }
         ContextMenuArea {
             Menu {
@@ -116,13 +128,6 @@ component TaskBubble {
                 MenuSeparator { }
 
                 MenuItem {
-                    title: "Duplicate";
-                    activated => {
-                        root.duplicate_clicked();
-                    }
-                }
-
-                MenuItem {
                     title: "Delete";
                     activated => {
                         root.delete_clicked();
@@ -142,8 +147,6 @@ component TaskBubble {
                                 : task.selected //
                                 ? Styles.selected_color //
                                 : black;
-                    drop-shadow-color: dragged ? #00000055 : #00000000;
-                    drop-shadow-blur: dragged ? 20px : 0px;
                     drop-shadow-offset-x: 5px;
                     drop-shadow-offset-y: 5px;
                     animate drop-shadow-color, drop-shadow-blur, drop-shadow-offset-x, drop-shadow-offset-y {
@@ -207,6 +210,9 @@ export component AppWindow inherits Window {
     out property <int> hovered_task_index: -1;
     in-out property <string> current_file_path: "";
     out property <bool> has_focus <=> window_focus.has-focus;
+    out property <bool> is_dragging_selected: false;
+    out property <length> dragging_start_pos_x;
+    out property <length> dragging_start_pos_y;
     callback refresh_other();
     callback refresh_tasks();
     callback load(path: string);
@@ -217,10 +223,12 @@ export component AppWindow inherits Window {
     callback create_task_with_parent(parent_id: int, title: string, x: length, y: length);
     callback set_parent_to_task(id: int, parent: int);
     callback unset_parent_from_task(id: int);
-    callback duplicate_task(id: int, x: length, y: length);
+    callback duplicate_selected();
     callback delete_task(id: int);
+    callback delete_selected();
     callback change_state(id: int, state: MindTaskState);
-    callback task_moved_dropped(id: int, x: length, y: length);
+    /// called when the selection movement has been dropped, x and y are relative position to the drag start
+    callback selected_move_dropped(x: length, y: length);
     callback rename_task(id: int, title: string);
     callback set_task_notes(id: int, description: string);
     callback set_active_task(id: int);
@@ -248,6 +256,10 @@ export component AppWindow inherits Window {
     forward-focus: window_focus;
     window_focus := FocusScope {
         key-pressed(event) => {
+            if event.text.to-lowercase() == "d" && event.modifiers.shift {
+                root.duplicate_selected();
+                return EventResult.accept;
+            }
             if event.text.to-lowercase() == "a" && event.modifiers.control && event.modifiers.shift {
                 root.clear_selection();
                 return EventResult.accept;
@@ -276,8 +288,8 @@ export component AppWindow inherits Window {
                 load_button.open();
                 return EventResult.accept;
             }
-            if event.text == Key.Delete && root.active_task_index >= 0 {
-                root.delete_task(root.tasks[root.active_task_index].id);
+            if event.text == Key.Delete {
+                root.delete_selected();
                 return EventResult.accept;
             }
             if event.text == "1" && root.active_task_index >= 0 {
@@ -342,6 +354,7 @@ export component AppWindow inherits Window {
                     }
                     workbench_box_selected(x1, y1, x2, y2) => {
                         root.set_selection_from_box(x1, y1, x2, y2);
+                        root.is_dragging_selected = false;
                     }
                     changed has-hover => {
                         if self.has-hover {
@@ -353,7 +366,15 @@ export component AppWindow inherits Window {
                             MenuItem {
                                 title: "New Task";
                                 activated => {
-                                    create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                                    root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                                }
+                            }
+
+                            MenuItem {
+                                title: "Delete";
+                                // enabled: root.has_selection // TODO
+                                activated => {
+                                    root.delete_selected();
                                 }
                             }
                         }
@@ -364,12 +385,17 @@ export component AppWindow inherits Window {
                     Rectangle {
                         if task.parent_index != -1:
                         Edge {
+                            // x and y adds an offset to the mouse if it is being dragged
                             stroke: Styles.edge_color;
                             stroke_width: 4px;
-                            from_x: task.x;
-                            from_y: task.y;
-                            to_x: tasks[task.parent_index].x;
-                            to_y: tasks[task.parent_index].y;
+                            // from_x: task.x;
+                            from_x: task.x + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                            // from_y: task.y;
+                            from_y: task.y + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                            // to_x: tasks[task.parent_index].x;
+                            to_x: tasks[task.parent_index].x + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                            // to_y: tasks[task.parent_index].y;
+                            to_y: tasks[task.parent_index].y + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
                         }
                     }
 
@@ -391,29 +417,42 @@ export component AppWindow inherits Window {
                     }
 
                     // temp bubble
-                    // bubble_b := TaskBubble {
-                    //     x: workbench.center_x + self.task.x - self.width / 2;
-                    //     y: workbench.center_y + self.task.y - self.height / 2;
-                    //     active: false;
-                    //     debug_info: root.debug_info;
-                    //     task: {
-                    //         id: 55,
-                    //         title: "Meow Meow Meow",
-                    //         x: 123px,
-                    //         y: 123px,
-                    //         completion: 50%,
-                    //         childrens: [1, 2, 3, 4],
-                    //     };
-                    //     moved_by(x, y) => {
-                    //         self.task.x = x + self.task.x;
-                    //         self.task.y = y + self.task.y;
-                    //     }
-                    // }
+                    bubble_b := TaskBubble {
+                        x: workbench.center_x + self.task.x - self.width / 2;
+                        y: workbench.center_y + self.task.y - self.height / 2;
+                        active: false;
+                        debug_info: root.debug_info;
+                        task: {
+                            id: 55,
+                            title: "Meow Meow Meow",
+                            x: 123px,
+                            y: 123px,
+                            completion: 50%,
+                            childrens: [1, 2, 3, 4],
+                        };
+                        moved_by(x, y) => {
+                            self.task.x = x + self.task.x;
+                            self.task.y = y + self.task.y;
+                        }
+                    }
+
+                    Button {
+                        x: workbench.center_x + 123px - self.width / 2;
+                        y: workbench.center_y + 0px - self.height / 2;
+                        text: "Click Me";
+                    }
 
                     // place every tasks
                     for task[index] in tasks: TaskBubble {
-                        x: workbench.center_x + task.x - self.width / 2;
-                        y: workbench.center_y + task.y - self.height / 2;
+                        // x and y adds an offset to the mouse if it is being dragged
+                        x: workbench.center_x + task.x - self.width / 2 + ( //
+                            root.is_dragging_selected && task.selected //
+                            ? workbench.mouse_pos_x - root.dragging_start_pos_x //
+                            : 0);
+                        y: workbench.center_y + task.y - self.height / 2 + ( //
+                            root.is_dragging_selected && task.selected //
+                            ? workbench.mouse_pos_y - root.dragging_start_pos_y //
+                            : 0);
                         task: task;
                         active: root.active_task_index >= 0 && root.tasks[active_task_index].id == task.id;
                         debug_info: root.debug_info;
@@ -421,13 +460,6 @@ export component AppWindow inherits Window {
                             if self.has-hover {
                                 root.hovered_task_index = index;
                             }
-                        }
-                        moved_by(x, y) => {
-                            task.x = x + task.x;
-                            task.y = y + task.y;
-                        }
-                        released => {
-                            root.task_moved_dropped(task.id, task.x, task.y);
                         }
                         delete_clicked() => {
                             root.delete_task(task.id);
@@ -449,10 +481,11 @@ export component AppWindow inherits Window {
                         new_children_clicked => {
                             root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
-                        duplicate_clicked => {
-                            root.duplicate_task(task.id, workbench.mouse_pos_x, workbench.mouse_pos_y);
-                        }
-                        clicked => {
+                        left_mouse_down => {
+                            debug("left_mouse_down");
+                            // I know dragging starts from mouse down, but does it only starts from over an item?
+                            // will need to test in blenders
+                            // ok, so the selection drag only starts from over an item, mouse down on the workbench do another selection
                             root.focus();
                             if root.mode == AppMode.SetParent {
                                 root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
@@ -464,7 +497,26 @@ export component AppWindow inherits Window {
                                 root.mode = AppMode.None;
                                 return;
                             }
-                            root.set_active_task(task.id);
+
+                            // start moving selected
+
+                            if !task.selected {
+                                root.set_active_task(task.id);
+                            }
+                            root.is_dragging_selected = true;
+                            root.dragging_start_pos_x = workbench.mouse_pos_x;
+                            root.dragging_start_pos_y = workbench.mouse_pos_y;
+                        }
+                        left_mouse_up => {
+                            debug("left_mouse_up");
+                            if root.is_dragging_selected {
+                                // only call the move when the dragging actually moved
+                                if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {
+                                    root.selected_move_dropped(workbench.mouse_pos_x - root.dragging_start_pos_x, workbench.mouse_pos_y - root.dragging_start_pos_y);
+                                }
+                                root.is_dragging_selected = false;
+                                return;
+                            }
                         }
                     }
                 }
@@ -540,6 +592,10 @@ export component AppWindow inherits Window {
                             : root.mode == AppMode.AddChildren ? "Application Mode: AddChildren" //
                             : root.mode == AppMode.SetParent ? "Application Mode: SetParent" //
                             : "Mode: AAAAAAAAAAAAA";
+                    }
+
+                    Text {
+                        text: "Dragging selected: " + (root.is_dragging_selected ? "True" : "False");
                     }
                 }
             }

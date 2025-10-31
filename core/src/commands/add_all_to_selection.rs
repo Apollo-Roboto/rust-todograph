@@ -6,20 +6,20 @@ use crate::editor::EditorState;
 
 /// Clear selection
 #[derive(Default, Debug, Clone)]
-pub struct SelectAllCommand {
+pub struct AddAllToSelectionCommand {
     cmd: Option<SetSelectionCommand>,
 }
-impl SelectAllCommand {
+impl AddAllToSelectionCommand {
     pub fn new() -> Self {
         Self { cmd: None }
     }
 }
-impl Display for SelectAllCommand {
+impl Display for AddAllToSelectionCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Selected all")
     }
 }
-impl Command for SelectAllCommand {
+impl Command for AddAllToSelectionCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
         let tasks: HashSet<u32> = editor.graph.tasks.iter().map(|t| t.id).collect();
         let mut cmd = SetSelectionCommand::new(tasks);
@@ -43,7 +43,7 @@ mod test {
     #[test]
     fn test_undo_redo() {
         let mut state = EditorState::default();
-        let mut cmd = SelectAllCommand::new();
+        let mut cmd = AddAllToSelectionCommand::new();
 
         let id = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {

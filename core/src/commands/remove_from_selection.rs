@@ -20,7 +20,7 @@ impl RemoveFromSelectionCommand {
 }
 impl Display for RemoveFromSelectionCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Remove {} tasks from selection", self.task_ids.len())
+        write!(f, "Remove {} items from selection", self.task_ids.len())
     }
 }
 impl Command for RemoveFromSelectionCommand {

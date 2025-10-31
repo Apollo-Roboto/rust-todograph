@@ -13,23 +13,44 @@ macro_rules! import_commands {
 }
 
 import_commands! {
+    add_all_to_selection::AddAllToSelectionCommand,
     add_to_selection::AddToSelectionCommand,
+    clear_active::ClearActiveCommand,
     clear_selection::ClearSelectionCommand,
-    clear_task_active::ClearTaskActiveCommand,
     create_task::CreateTaskCommand,
+    delete_selected::DeleteSelectedCommand,
     delete_task::DeleteTaskCommand,
-    duplicate_task::DuplicateTaskCommand,
+    duplicate_selected::DuplicateSelectedCommand,
+    move_selected_position::MoveSelectedPositionCommand,
     remove_from_selection::RemoveFromSelectionCommand,
-    select_all::SelectAllCommand,
+    set_active::SetActiveCommand,
     set_selection::SetSelectionCommand,
-    set_task_active::SetTaskActiveCommand,
     set_task_notes::SetTaskNotesCommand,
     set_task_parent::SetTaskParentCommand,
-    set_task_position::SetTaskPositionCommand,
     set_task_state::SetTaskStateCommand,
     set_task_title::SetTaskTitleCommand,
 }
 
+/// Command implementation, with execute and undo
+///
+/// For the display implementation, try to make it fit in the sentence: "I am going to {cmd}"
+///
+/// ```rs
+/// struct ExampleCommand {}
+/// impl std::fmt::Display for ExampleCommand {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+///         write!(f, "Example command")
+///     }
+/// }
+/// impl Command for ExampleCommand {
+///     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
+///         todo!()
+///     }
+///     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
+///         todo!()
+///     }
+/// }
+/// ```
 pub trait Command: Display {
     /// Execute the command on the editor, returns an error message if failed
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String>;

@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use crate::MindTask;
 use crate::commands::Command;
-use crate::commands::DeleteTaskCommand;
 use crate::editor::EditorState;
 
 /// Create a task
@@ -19,7 +18,7 @@ impl CreateTaskCommand {
 }
 impl Display for CreateTaskCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Create task {}", self.task_to_create.id)
+        write!(f, "Create task #{}", self.task_to_create.id)
     }
 }
 impl Command for CreateTaskCommand {
@@ -29,7 +28,7 @@ impl Command for CreateTaskCommand {
     }
 
     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        let mut cmd = DeleteTaskCommand::new(self.task_to_create.clone());
-        cmd.execute(editor)
+        editor.graph.delete_task(self.task_to_create.id);
+        Ok(())
     }
 }

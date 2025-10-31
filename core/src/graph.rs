@@ -9,12 +9,17 @@ pub use crate::models::*;
 
 // TODO: Experiment with Petgraph
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Debug)]
 pub struct TaskGraph {
     pub tasks: Vec<MindTask>,
     id_counter: u32,
 }
 
+impl PartialEq for TaskGraph {
+    fn eq(&self, other: &Self) -> bool {
+        self.tasks == other.tasks
+    }
+}
 impl TaskGraph {
     /// Generate a unique id
     pub fn generate_id(&mut self) -> u32 {

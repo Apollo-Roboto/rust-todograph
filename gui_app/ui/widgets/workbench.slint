@@ -1,5 +1,5 @@
 import { SelectionRectangle } from "selection_rectangle.slint";
-import { Palette } from "std-widgets.slint";
+import { Palette, Button } from "std-widgets.slint";
 
 export component DragableRectangle inherits Rectangle {
     out property <bool> dragged: false;
@@ -7,6 +7,7 @@ export component DragableRectangle inherits Rectangle {
     callback moved_by(x: length, y: length);
     callback clicked();
     callback released();
+    callback pointer-event(PointerEvent);
     ta := TouchArea {
         moved => {
             root.dragged = true;
@@ -21,7 +22,9 @@ export component DragableRectangle inherits Rectangle {
             if event.button == PointerEventButton.left && event.kind == PointerEventKind.up && root.dragged == true {
                 root.dragged = false;
                 root.released();
+                return;
             }
+            root.pointer-event(event);
         }
     }
 
@@ -119,7 +122,7 @@ export component WorkBench inherits Rectangle {
     in property <brush> background_detail_color: #ffffff;
     in property <color> selection_rectangle_border: Palette.accent-background;
     in property <color> selection_rectangle_fill: #00000000;
-    out property <bool> has-hover <=> ta.has-hover;
+    out property <bool> has-hover <=> ta_behind.has-hover;
     out property <bool> is_panning: false;
     out property <length> center_x: work_area.width / 2;
     out property <length> center_y: work_area.height / 2;
@@ -128,9 +131,9 @@ export component WorkBench inherits Rectangle {
     // View position y from the center of the viewport
     out property <length> view_pos_y;
     /// Mouse position x relative from the center of the workbench
-    out property <length> mouse_pos_x;
+    out property <length> mouse_pos_x: ta_above.mouse-x - root.center_x;
     /// Mouse position y relative from the center of the workbench
-    out property <length> mouse_pos_y;
+    out property <length> mouse_pos_y: ta_above.mouse-y - root.center_y;
     out property <length> panning_start_y;
     out property <length> panning_start_x;
     /// Is the user performing a selection
@@ -169,72 +172,78 @@ export component WorkBench inherits Rectangle {
             height: parent.height;
         }
 
-        ta := TouchArea {
-            mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
-            double-clicked => {
-                if root.is_panning {
-                    return;
-                }
-                root.workbench_double_clicked();
-            }
-            pointer-event(event) => {
-                if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
-                    if root.is_selecting == false {
-                        root.selection_start_x = self.mouse-x - root.center_x;
-                        root.selection_start_y = self.mouse-y - root.center_y;
-                        root.is_selecting = true;
-                    }
-                    return;
-                }
-                if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
-                    // check if the cursor moved at all, no movement shouldn't trigger the selected callback
-                    if root.selection_start_x == self.mouse-x - root.center_x && root.selection_start_y == self.mouse-y - root.center_y {
-                        root.is_selecting = false;
-                        root.workbench_clicked();
-                        return;
-                    }
-                    root.workbench_box_selected(
-                            root.selection_start_x,
-                            root.selection_start_y,
-                            self.mouse-x - root.center_x,
-                            self.mouse-y - root.center_y //
-                        );
-                    root.is_selecting = false;
-                    return;
-                }
-                if event.button == PointerEventButton.middle && event.kind == PointerEventKind.down {
-                    root.is_panning = true;
-                    root.panning_start_x = self.mouse-x;
-                    root.panning_start_y = self.mouse-y;
-                    return;
-                }
-                if event.button == PointerEventButton.middle && event.kind == PointerEventKind.up {
-                    root.is_panning = false;
-                    return;
-                }
-                if event.kind == PointerEventKind.move {
-                    // owo <- this comment was written without my explicit consent, I do not agree with those words
-                    root.mouse_pos_x = self.mouse-x - root.center_x;
-                    root.mouse_pos_y = self.mouse-y - root.center_y;
-                    if root.is_panning {
-                        work_area.x = self.mouse-x - root.panning_start_x + work_area.x;
-                        work_area.y = self.mouse-y - root.panning_start_y + work_area.y;
-                        root.view_pos_x = -(root.center_x + work_area.x - root.width / 2);
-                        root.view_pos_y = -(root.center_y + work_area.y - root.height / 2);
-                        root.moved_by(self.mouse-x - root.panning_start_x, self.mouse-y - root.panning_start_y);
-                    }
-                    return;
-                }
-            }
-        }
-
         if debug_info:
         WorkAreaDebugLimit {
             line_color: root.background_detail_color;
         }
-        //
-        @children
-        //
+
+        ta_above := TouchArea {
+            // this TouchArea tracks the mouse position above all childrens
+
+            ta_behind := TouchArea {
+                // this TouchArea handles all events behind the childrens, aka all actions on the workbench
+                mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
+                double-clicked => {
+                    if root.is_panning {
+                        return;
+                    }
+                    root.workbench_double_clicked();
+                }
+                pointer-event(event) => {
+                    if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                        if root.is_selecting == false {
+                            root.selection_start_x = self.mouse-x - root.center_x;
+                            root.selection_start_y = self.mouse-y - root.center_y;
+                            root.is_selecting = true;
+                        }
+                        return;
+                    }
+                    if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+                        // check if the cursor moved at all, no movement shouldn't trigger the selected callback
+                        if root.selection_start_x == self.mouse-x - root.center_x && root.selection_start_y == self.mouse-y - root.center_y {
+                            root.is_selecting = false;
+                            root.workbench_clicked();
+                            return;
+                        }
+                        root.workbench_box_selected(
+                                root.selection_start_x,
+                                root.selection_start_y,
+                                self.mouse-x - root.center_x,
+                                self.mouse-y - root.center_y //
+                            );
+                        root.is_selecting = false;
+                        return;
+                    }
+
+                    // TODO: move is jittering since I changed this to a above/behind TouchArea, what is causing this?
+
+                    if event.button == PointerEventButton.middle && event.kind == PointerEventKind.down {
+                        root.is_panning = true;
+                        root.panning_start_x = self.mouse-x;
+                        root.panning_start_y = self.mouse-y;
+                        return;
+                    }
+                    if event.button == PointerEventButton.middle && event.kind == PointerEventKind.up {
+                        root.is_panning = false;
+                        return;
+                    }
+                    if event.kind == PointerEventKind.move {
+                        // owo <- this comment was written without my explicit consent, I do not agree with those words
+                        if root.is_panning {
+                            work_area.x = self.mouse-x - root.panning_start_x + work_area.x;
+                            work_area.y = self.mouse-y - root.panning_start_y + work_area.y;
+                            root.view_pos_x = -(root.center_x + work_area.x - root.width / 2);
+                            root.view_pos_y = -(root.center_y + work_area.y - root.height / 2);
+                            root.moved_by(self.mouse-x - root.panning_start_x, self.mouse-y - root.panning_start_y);
+                        }
+                        return;
+                    }
+                }
+            }
+
+            @children
+        }
+
         if root.is_selecting:
         SelectionRectangle {
             anchor_x: root.selection_start_x + root.center_x;

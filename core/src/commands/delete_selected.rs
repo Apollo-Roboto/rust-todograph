@@ -1,66 +1,57 @@
-use std::collections::HashSet;
 use std::fmt::Display;
 
+use crate::MindTask;
 use crate::commands::Command;
 use crate::editor::EditorState;
 
-/// Clear selection
+/// Delete a task
 #[derive(Default, Debug, Clone)]
-pub struct ClearSelectionCommand {
-    previous_selection: Option<HashSet<u32>>,
-    previous_active_task: Option<Option<u32>>,
+pub struct DeleteSelectedCommand {
+    deleted_items: Option<Vec<MindTask>>,
+    previously_active_task: Option<Option<u32>>,
 }
-impl ClearSelectionCommand {
+impl DeleteSelectedCommand {
     pub fn new() -> Self {
         Self::default()
     }
 }
-impl Display for ClearSelectionCommand {
+impl Display for DeleteSelectedCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Clear selection")
+        write!(f, "Delete selected")
     }
 }
-impl Command for ClearSelectionCommand {
+impl Command for DeleteSelectedCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        let previous_selection: HashSet<u32> = editor
+        let items_to_delete: Vec<MindTask> = editor
             .graph
             .tasks
             .iter()
             .filter(|t| t.selected == true)
-            .map(|t| t.id)
+            .cloned()
             .collect();
 
-        if previous_selection.is_empty() {
-            return Err(String::from("No selection to clear"));
+        for item in &items_to_delete {
+            if Some(item.id) == editor.active_task {
+                self.previously_active_task = Some(Some(item.id));
+                editor.active_task = None;
+            }
+            editor.graph.delete_task(item.id);
         }
 
-        self.previous_selection = Some(previous_selection);
-        self.previous_active_task = Some(editor.active_task);
-
-        editor
-            .graph
-            .tasks
-            .iter_mut()
-            .for_each(|t| t.selected = false);
-
-        editor.active_task = None;
-
+        self.deleted_items = Some(items_to_delete);
         Ok(())
     }
 
     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        if let Some(previous_selection) = self.previous_selection.as_ref() {
-            editor
-                .graph
-                .tasks
-                .iter_mut()
-                .for_each(|t| t.selected = previous_selection.contains(&t.id));
+        if let Some(items) = &self.deleted_items {
+            for item in items {
+                editor.graph.create_task(item.clone());
+            }
         }
 
-        if let Some(task) = self.previous_active_task {
+        if let Some(task) = self.previously_active_task {
             editor.active_task = task;
         }
-
         Ok(())
     }
 }
@@ -84,8 +75,16 @@ mod test {
             selected: true,
             ..Default::default()
         });
+        let id3 = state.graph.generate_id();
+        state.graph.tasks.push(crate::MindTask {
+            id: id3,
+            selected: true,
+            ..Default::default()
+        });
 
-        let mut cmd = ClearSelectionCommand::new();
+        state.active_task = Some(id2);
+
+        let mut cmd = DeleteSelectedCommand::new();
 
         let state_before_execute = state.clone();
 
@@ -95,15 +94,8 @@ mod test {
             "The state was supposed to change"
         );
 
-        assert_eq!(
-            state
-                .graph
-                .tasks
-                .iter()
-                .filter(|t| t.selected == true)
-                .count(),
-            0
-        );
+        assert_eq!(state.active_task, None);
+        assert_eq!(state.graph.tasks.len(), 1);
 
         cmd.undo(&mut state).unwrap();
         assert_eq!(

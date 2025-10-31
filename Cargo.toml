@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["gui_app", "core", "cli_app"]
-default-members = ["gui_app"]
+# default-members = ["gui_app"]
 
 [workspace.package]
 authors = ["Apollo-Roboto"]

@@ -6,13 +6,13 @@ use crate::editor::EditorState;
 
 /// Set a task to active
 #[derive(Debug, Clone)]
-pub struct SetTaskActiveCommand {
+pub struct SetActiveCommand {
     task_id: u32,
     keep_selection: bool,
     previous_active_task: Option<u32>,
     previous_selection: Option<HashSet<u32>>,
 }
-impl SetTaskActiveCommand {
+impl SetActiveCommand {
     pub fn new(task_id: u32, keep_selection: bool) -> Self {
         Self {
             task_id,
@@ -22,16 +22,16 @@ impl SetTaskActiveCommand {
         }
     }
 }
-impl Display for SetTaskActiveCommand {
+impl Display for SetActiveCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.keep_selection {
-            write!(f, "Set task {} active (keep selection)", self.task_id)
+            write!(f, "Set item {} active (keep selection)", self.task_id)
         } else {
-            write!(f, "Set task {} active", self.task_id)
+            write!(f, "Set item {} active", self.task_id)
         }
     }
 }
-impl Command for SetTaskActiveCommand {
+impl Command for SetActiveCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
         let currently_active = editor.active_task;
 
@@ -110,7 +110,7 @@ mod test {
             ..Default::default()
         });
 
-        let mut cmd = SetTaskActiveCommand::new(id2, true);
+        let mut cmd = SetActiveCommand::new(id2, true);
 
         let state_before_execute = state.clone();
 

@@ -9,7 +9,9 @@ log = { workspace = true }
 open = "5.3.2"
 rfd = { workspace = true }
 rust-firework-core = { path = "../core" }
-slint = { git = "https://github.com/slint-ui/slint" }
+
+slint = { version = "1.14.1" }
 
 [build-dependencies]
-slint-build = { git = "https://github.com/slint-ui/slint" }
+
+slint-build = "1.14.1"

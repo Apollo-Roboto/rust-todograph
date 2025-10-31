@@ -5,41 +5,29 @@ export global Styles {
     in-out property <color> hyperlink: Palette.color-scheme == ColorScheme.dark //
         ? #8686fa : #0808fa;
     in-out property <color> todo_color: Palette.color-scheme == ColorScheme.dark //
-        ? #333333 //
-        : #b8b8b8;
+        ? #333333 : #b8b8b8;
     in-out property <color> doing_color: Palette.color-scheme == ColorScheme.dark //
-        ? #2b599c //
-        : #7199d4;
+        ? #2b599c : #7199d4;
     in-out property <color> done_color: Palette.color-scheme == ColorScheme.dark //
-        ? #186638 //
-        : #5ab478;
+        ? #186638 : #5ab478;
     in-out property <color> danger_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ac372f //
-        : #d85147;
+        ? #ac372f : #d85147;
     in-out property <color> selection_rectangle_border: Palette.color-scheme == ColorScheme.dark //
-        ? #cccccc //
-        : #555555;
+        ? #cccccc : #555555;
     in-out property <color> selection_rectangle_fill: Palette.color-scheme == ColorScheme.dark //
-        ? #ffffff08 //
-        : #00000010;
+        ? #ffffff08 : #00000010;
     in-out property <color> selected_color: Palette.color-scheme == ColorScheme.dark //
-        ? #0051ff //
-        : #0051ff;
+        ? #ed5800 : #f05900;
     in-out property <color> active_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ffa300 //
-        : #ffa600;
+        ? #ffa300 : #ffa942;
     in-out property <color> edge_color: Palette.color-scheme == ColorScheme.dark //
-        ? #525281 //
-        : #b0abd1;
+        ? #525281 : #b0abd1;
     in-out property <color> temporary_edge_color: Palette.color-scheme == ColorScheme.dark //
-        ? #7b88ac //
-        : #645c75;
+        ? #7b88ac : #645c75;
     in-out property <brush> workbench_background_color: Palette.color-scheme == ColorScheme.dark //
-        ? #00000000 //
-        : #00000000;
+        ? #00000000 : #00000000;
     in-out property <brush> workbench_background_details_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ffffff0c //
-        : #00000014;
+        ? #ffffff0c : #00000014;
     public pure function color_from_state(state: MindTaskState) -> brush {
         if state == MindTaskState.Todo {
             return self.todo_color;
