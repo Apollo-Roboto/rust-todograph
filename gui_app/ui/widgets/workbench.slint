@@ -179,6 +179,7 @@ export component WorkBench inherits Rectangle {
 
         ta_above := TouchArea {
             // this TouchArea tracks the mouse position above all childrens
+            mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
 
             ta_behind := TouchArea {
                 // this TouchArea handles all events behind the childrens, aka all actions on the workbench
@@ -214,9 +215,6 @@ export component WorkBench inherits Rectangle {
                         root.is_selecting = false;
                         return;
                     }
-
-                    // TODO: move is jittering since I changed this to a above/behind TouchArea, what is causing this?
-
                     if event.button == PointerEventButton.middle && event.kind == PointerEventKind.down {
                         root.is_panning = true;
                         root.panning_start_x = self.mouse-x;

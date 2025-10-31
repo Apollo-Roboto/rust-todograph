@@ -417,30 +417,24 @@ export component AppWindow inherits Window {
                     }
 
                     // temp bubble
-                    bubble_b := TaskBubble {
-                        x: workbench.center_x + self.task.x - self.width / 2;
-                        y: workbench.center_y + self.task.y - self.height / 2;
-                        active: false;
-                        debug_info: root.debug_info;
-                        task: {
-                            id: 55,
-                            title: "Meow Meow Meow",
-                            x: 123px,
-                            y: 123px,
-                            completion: 50%,
-                            childrens: [1, 2, 3, 4],
-                        };
-                        moved_by(x, y) => {
-                            self.task.x = x + self.task.x;
-                            self.task.y = y + self.task.y;
-                        }
-                    }
-
-                    Button {
-                        x: workbench.center_x + 123px - self.width / 2;
-                        y: workbench.center_y + 0px - self.height / 2;
-                        text: "Click Me";
-                    }
+                    // bubble_b := TaskBubble {
+                    //     x: workbench.center_x + self.task.x - self.width / 2;
+                    //     y: workbench.center_y + self.task.y - self.height / 2;
+                    //     active: false;
+                    //     debug_info: root.debug_info;
+                    //     task: {
+                    //         id: 55,
+                    //         title: "Meow Meow Meow",
+                    //         x: 123px,
+                    //         y: 123px,
+                    //         completion: 50%,
+                    //         childrens: [1, 2, 3, 4],
+                    //     };
+                    //     moved_by(x, y) => {
+                    //         self.task.x = x + self.task.x;
+                    //         self.task.y = y + self.task.y;
+                    //     }
+                    // }
 
                     // place every tasks
                     for task[index] in tasks: TaskBubble {
