@@ -9,6 +9,7 @@ import {
     Switch,
 } from "std-widgets.slint";
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
+import { SelectionBoxKind } from "widgets/selection_rectangle.slint";
 import { Styles, Func } from "global.slint";
 import { MindTask, MindTaskState } from "models.slint";
 import { Bubble } from "widgets/bubble.slint";
@@ -236,8 +237,8 @@ export component AppWindow inherits Window {
     callback clear_selection();
     callback select_all();
     callback set_selection_from_box(length, length, length, length);
-    // callback add_selection_from_box(length, length, length, length);
-    // callback remove_selection_from_box(length, length, length, length);
+    callback add_selection_from_box(length, length, length, length);
+    callback remove_selection_from_box(length, length, length, length);
     // callback add_to_selection(id: int);
     // callback remove_from_selection(id: int);
     public function refresh_all() {
@@ -352,9 +353,20 @@ export component AppWindow inherits Window {
                             root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
                     }
-                    workbench_box_selected(x1, y1, x2, y2) => {
-                        root.set_selection_from_box(x1, y1, x2, y2);
+                    workbench_box_selected(x1, y1, x2, y2, kind) => {
                         root.is_dragging_selected = false;
+                        if kind == SelectionBoxKind.Set {
+                            root.set_selection_from_box(x1, y1, x2, y2);
+                            return;
+                        }
+                        if kind == SelectionBoxKind.Add {
+                            root.add_selection_from_box(x1, y1, x2, y2);
+                            return;
+                        }
+                        if kind == SelectionBoxKind.Sub {
+                            root.remove_selection_from_box(x1, y1, x2, y2);
+                            return;
+                        }
                     }
                     changed has-hover => {
                         if self.has-hover {
@@ -476,10 +488,6 @@ export component AppWindow inherits Window {
                             root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
                         left_mouse_down => {
-                            debug("left_mouse_down");
-                            // I know dragging starts from mouse down, but does it only starts from over an item?
-                            // will need to test in blenders
-                            // ok, so the selection drag only starts from over an item, mouse down on the workbench do another selection
                             root.focus();
                             if root.mode == AppMode.SetParent {
                                 root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
@@ -495,6 +503,8 @@ export component AppWindow inherits Window {
                             // start moving selected
 
                             if !task.selected {
+                                // TODO: I should be able to click on a item, even if selected to make it active
+                                // Blender set active on mouse down when it's not selected but set active on mouse up (if not moved) when selected, to allow dragging
                                 root.set_active_task(task.id);
                             }
                             root.is_dragging_selected = true;
@@ -502,7 +512,6 @@ export component AppWindow inherits Window {
                             root.dragging_start_pos_y = workbench.mouse_pos_y;
                         }
                         left_mouse_up => {
-                            debug("left_mouse_up");
                             if root.is_dragging_selected {
                                 // only call the move when the dragging actually moved
                                 if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {

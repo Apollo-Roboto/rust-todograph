@@ -27,7 +27,6 @@ impl Display for SetSelectionCommand {
 }
 impl Command for SetSelectionCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        // if the active task is outside the selection, it needs to be made not active
         let previous_selection: HashSet<u32> = editor
             .graph
             .tasks
@@ -85,6 +84,7 @@ mod test {
         let id1 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id1,
+            selected: true,
             ..Default::default()
         });
         let id2 = state.graph.generate_id();
@@ -92,10 +92,21 @@ mod test {
             id: id2,
             ..Default::default()
         });
+        let id3 = state.graph.generate_id();
+        state.graph.tasks.push(crate::MindTask {
+            id: id3,
+            ..Default::default()
+        });
+        let id4 = state.graph.generate_id();
+        state.graph.tasks.push(crate::MindTask {
+            id: id4,
+            ..Default::default()
+        });
 
         state.active_task = Some(id1);
 
-        let mut cmd = SetSelectionCommand::new(HashSet::from_iter(vec![id2]));
+        let selection = HashSet::from_iter(vec![id2, id3]);
+        let mut cmd = SetSelectionCommand::new(selection.clone());
 
         let state_before_execute = state.clone();
 
@@ -104,7 +115,16 @@ mod test {
             state_before_execute, state,
             "The state was supposed to change"
         );
-        assert_eq!(state.active_task, None);
+
+        assert_eq!(
+            state.active_task, None,
+            "active task was expected to be cleared"
+        );
+        assert_eq!(
+            state.graph.tasks.iter().filter(|t| t.selected).count(),
+            selection.len()
+        );
+
         cmd.undo(&mut state).unwrap();
         assert_eq!(
             state_before_execute, state,

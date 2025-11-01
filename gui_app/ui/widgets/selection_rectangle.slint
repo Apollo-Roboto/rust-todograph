@@ -1,10 +1,17 @@
 
+
+export enum SelectionBoxKind {
+    Set, Add, Sub,
+}
+
 /// given an anchor and a mouse position, the rectangle will follow the cursor
 export component SelectionRectangle inherits Rectangle {
     in property <length> anchor_x;
     in property <length> anchor_y;
     in property <length> mouse_x;
     in property <length> mouse_y;
+    in property <SelectionBoxKind> kind: SelectionBoxKind.Set;
+    in property <bool> debug_info: false;
     out property <bool> is_west: self.mouse_x < self.anchor_x;
     out property <bool> is_north: self.mouse_y < self.anchor_y;
     border-width: 1px;
@@ -20,4 +27,15 @@ export component SelectionRectangle inherits Rectangle {
     y: self.is_north //
      ? self.mouse_y //
      : self.anchor_y;
+
+    if root.debug_info && root.kind == SelectionBoxKind.Add:
+    Text {
+        text: "+";
+        color: #ff0000;
+    }
+    if root.debug_info && root.kind == SelectionBoxKind.Sub:
+    Text {
+        text: "-";
+        color: #ff0000;
+    }
 }

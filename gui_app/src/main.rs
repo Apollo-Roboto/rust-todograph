@@ -516,6 +516,58 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
+    main_window.on_add_selection_from_box(move |x1, y1, x2, y2| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let mut editor = editor_clone.lock().unwrap();
+
+        let selection_box = (Point::new(x1, y1), Point::new(x2, y2));
+
+        let tasks: HashSet<_> = editor
+            .state
+            .graph
+            .tasks
+            .iter()
+            .filter(|t| t.pos.is_within(selection_box.0, selection_box.1))
+            .map(|t| t.id)
+            .collect();
+
+        let cmd = Box::new(commands::AddToSelectionCommand::new(tasks));
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+        main_window.invoke_refresh_other();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_remove_selection_from_box(move |x1, y1, x2, y2| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let mut editor = editor_clone.lock().unwrap();
+
+        let selection_box = (Point::new(x1, y1), Point::new(x2, y2));
+
+        let tasks: HashSet<_> = editor
+            .state
+            .graph
+            .tasks
+            .iter()
+            .filter(|t| t.pos.is_within(selection_box.0, selection_box.1))
+            .map(|t| t.id)
+            .collect();
+
+        let cmd = Box::new(commands::RemoveFromSelectionCommand::new(tasks));
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+        main_window.invoke_refresh_other();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
     main_window.on_select_all(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;

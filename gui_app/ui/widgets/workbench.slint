@@ -1,4 +1,4 @@
-import { SelectionRectangle } from "selection_rectangle.slint";
+import { SelectionRectangle, SelectionBoxKind } from "selection_rectangle.slint";
 import { Palette, Button } from "std-widgets.slint";
 
 export component DragableRectangle inherits Rectangle {
@@ -140,10 +140,11 @@ export component WorkBench inherits Rectangle {
     out property <bool> is_selecting: false;
     out property <length> selection_start_x;
     out property <length> selection_start_y;
+    out property <SelectionBoxKind> selection_box_kind: SelectionBoxKind.Set;
     callback moved_by(x: length, y: length);
     callback workbench_clicked();
     callback workbench_double_clicked();
-    callback workbench_box_selected(length, length, length, length);
+    callback workbench_box_selected(length, length, length, length, SelectionBoxKind);
     public function move_view_to(x: length, y: length) {
         work_area.x = root.width / 2 - x;
         work_area.y = root.height / 2 - y;
@@ -191,14 +192,24 @@ export component WorkBench inherits Rectangle {
                     root.workbench_double_clicked();
                 }
                 pointer-event(event) => {
-                    if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
-                        if root.is_selecting == false {
-                            root.selection_start_x = self.mouse-x - root.center_x;
-                            root.selection_start_y = self.mouse-y - root.center_y;
-                            root.is_selecting = true;
+
+                    // start selection
+                    // Blender does not starts the selection if both shift and ctrl are pressed at the same time
+                    if event.button == PointerEventButton.left && event.kind == PointerEventKind.down && root.is_selecting == false && !(event.modifiers.shift && event.modifiers.control) {
+                        root.selection_start_x = self.mouse-x - root.center_x;
+                        root.selection_start_y = self.mouse-y - root.center_y;
+                        root.is_selecting = true;
+                        if event.modifiers.shift {
+                            root.selection_box_kind = SelectionBoxKind.Add;
+                        } else if event.modifiers.control {
+                            root.selection_box_kind = SelectionBoxKind.Sub;
+                        } else {
+                            root.selection_box_kind = SelectionBoxKind.Set;
                         }
                         return;
                     }
+
+                    // end selection
                     if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
                         // check if the cursor moved at all, no movement shouldn't trigger the selected callback
                         if root.selection_start_x == self.mouse-x - root.center_x && root.selection_start_y == self.mouse-y - root.center_y {
@@ -210,21 +221,24 @@ export component WorkBench inherits Rectangle {
                                 root.selection_start_x,
                                 root.selection_start_y,
                                 self.mouse-x - root.center_x,
-                                self.mouse-y - root.center_y //
-                            );
+                                self.mouse-y - root.center_y,
+                                root.selection_box_kind);
                         root.is_selecting = false;
                         return;
                     }
+                    // start pan
                     if event.button == PointerEventButton.middle && event.kind == PointerEventKind.down {
                         root.is_panning = true;
                         root.panning_start_x = self.mouse-x;
                         root.panning_start_y = self.mouse-y;
                         return;
                     }
+                    // end pan
                     if event.button == PointerEventButton.middle && event.kind == PointerEventKind.up {
                         root.is_panning = false;
                         return;
                     }
+                    // move pan
                     if event.kind == PointerEventKind.move {
                         // owo <- this comment was written without my explicit consent, I do not agree with those words
                         if root.is_panning {
@@ -250,6 +264,8 @@ export component WorkBench inherits Rectangle {
             mouse_y: root.mouse_pos_y + root.center_y;
             border-color: root.selection_rectangle_border;
             background: root.selection_rectangle_fill;
+            kind: root.selection_box_kind;
+            debug_info: root.debug_info;
         }
     }
 }
