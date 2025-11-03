@@ -49,8 +49,8 @@ component TaskBubble {
     out property <bool> has-hover <=> ta.has-hover;
     callback add_children_clicked();
     callback delete_clicked();
-    callback left_mouse_down();
-    callback left_mouse_up();
+    callback left_mouse_down(PointerEvent);
+    callback left_mouse_up(PointerEvent);
     callback moved_by(x: length, y: length);
     callback new_children_clicked();
     callback remove_parent_clicked();
@@ -58,13 +58,13 @@ component TaskBubble {
     callback state_change_clicked(state: MindTaskState);
     ta := TouchArea {
         pointer-event(event) => {
-            // QUESTION: should I just pass over the pointer event callback?
+            // TODO: I should just pass over the pointer event
             if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
-                root.left_mouse_down();
+                root.left_mouse_down(event);
                 return;
             }
             if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
-                root.left_mouse_up();
+                root.left_mouse_up(event);
                 return;
             }
         }
@@ -232,8 +232,8 @@ export component AppWindow inherits Window {
     callback selected_move_dropped(x: length, y: length);
     callback rename_task(id: int, title: string);
     callback set_task_notes(id: int, description: string);
-    callback set_active_task(id: int);
-    callback clear_active_task();
+    callback set_active_task(id: int, keep_selection: bool);
+    callback clear_active_task(keep_selected: bool);
     callback clear_selection();
     callback select_all();
     callback set_selection_from_box(length, length, length, length);
@@ -460,7 +460,7 @@ export component AppWindow inherits Window {
                             ? workbench.mouse_pos_y - root.dragging_start_pos_y //
                             : 0);
                         task: task;
-                        active: root.active_task_index >= 0 && root.tasks[active_task_index].id == task.id;
+                        active: root.active_task_index == index;
                         debug_info: root.debug_info;
                         changed has-hover => {
                             if self.has-hover {
@@ -474,20 +474,20 @@ export component AppWindow inherits Window {
                             root.change_state(task.id, state)
                         }
                         set_parent_clicked => {
-                            root.set_active_task(task.id);
+                            root.set_active_task(task.id, false);
                             root.mode = AppMode.SetParent;
                         }
                         remove_parent_clicked => {
                             root.unset_parent_from_task(task.id);
                         }
                         add_children_clicked => {
-                            root.set_active_task(task.id);
+                            root.set_active_task(task.id, false);
                             root.mode = AppMode.AddChildren;
                         }
                         new_children_clicked => {
                             root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                         }
-                        left_mouse_down => {
+                        left_mouse_down(event) => {
                             root.focus();
                             if root.mode == AppMode.SetParent {
                                 root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
@@ -500,22 +500,32 @@ export component AppWindow inherits Window {
                                 return;
                             }
 
-                            // start moving selected
-
-                            if !task.selected {
-                                // TODO: I should be able to click on a item, even if selected to make it active
-                                // Blender set active on mouse down when it's not selected but set active on mouse up (if not moved) when selected, to allow dragging
-                                root.set_active_task(task.id);
+                            // handle Blender style selection clicks
+                            if self.active && event.modifiers.shift {
+                                root.clear_active_task(false);
+                            } else if !self.active && event.modifiers.shift {
+                                root.set_active_task(task.id, true);
+                            } else if !task.selected && !event.modifiers.shift {
+                                root.set_active_task(task.id, false);
                             }
-                            root.is_dragging_selected = true;
-                            root.dragging_start_pos_x = workbench.mouse_pos_x;
-                            root.dragging_start_pos_y = workbench.mouse_pos_y;
+
+                            // start moving selected
+                            if !event.modifiers.shift {
+                                root.is_dragging_selected = true;
+                                root.dragging_start_pos_x = workbench.mouse_pos_x;
+                                root.dragging_start_pos_y = workbench.mouse_pos_y;
+                            }
                         }
-                        left_mouse_up => {
+                        left_mouse_up(event) => {
                             if root.is_dragging_selected {
-                                // only call the move when the dragging actually moved
                                 if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {
                                     root.selected_move_dropped(workbench.mouse_pos_x - root.dragging_start_pos_x, workbench.mouse_pos_y - root.dragging_start_pos_y);
+                                } else {
+
+                                    // handle Blender style selection clicks
+                                    if !event.modifiers.shift {
+                                        root.set_active_task(task.id, false);
+                                    }
                                 }
                                 root.is_dragging_selected = false;
                                 return;

@@ -448,12 +448,15 @@ fn main() {
 
     let editor_clone = editor.clone();
     let main_window_weak = main_window.as_weak();
-    main_window.on_set_active_task(move |task_id| {
+    main_window.on_set_active_task(move |task_id, keep_selection| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::SetActiveCommand::new(task_id as u32, false));
+        let cmd = Box::new(commands::SetActiveCommand::new(
+            task_id as u32,
+            keep_selection,
+        ));
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
@@ -462,12 +465,12 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_clear_active_task(move || {
+    main_window.on_clear_active_task(move |keep_selected| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
         let mut editor = editor_clone.lock().unwrap();
-        let cmd = Box::new(commands::ClearActiveCommand::new());
+        let cmd = Box::new(commands::ClearActiveCommand::new(keep_selected));
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
