@@ -173,6 +173,14 @@ fn main() {
     let editor = Arc::new(Mutex::new(editor));
 
     let main_window_weak = main_window.as_weak();
+    main_window.on_quit(move || {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        main_window.window().hide();
+    });
+
+    let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
     main_window.on_refresh_other(move || {
         let Some(main_window) = main_window_weak.upgrade() else {
@@ -212,16 +220,20 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_load(move |path| {
+    main_window.on_open_file_picked(move |path| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };
 
         let mut editor = editor_clone.lock().unwrap();
 
-        // no commands in the history is relevent after loading a project
-        editor.history.clear();
-        editor.state.active_task = None;
+        // if no path, load new project
+        match path.is_empty() {
+            true => editor.clear_all(),
+            false => editor.load(&path).unwrap(),
+        }
+
+        println!("editor tasks: {}", editor.state.graph.tasks.len());
 
         main_window.set_task_loading_state(ui::TaskLoadingState::Loading);
         main_window.set_history_past_count(editor.history.past().count() as i32);
@@ -229,9 +241,6 @@ fn main() {
         main_window.set_history_limit(editor.history.limit() as i32);
         main_window.set_last_command(slint::SharedString::new());
 
-        editor.load(&path).unwrap();
-
-        // avoid deadlock from the next invoke
         std::mem::drop(editor);
 
         main_window.invoke_refresh_all();
@@ -239,7 +248,7 @@ fn main() {
 
     let main_window_weak = main_window.as_weak();
     let editor_clone = editor.clone();
-    main_window.on_save(move |path| {
+    main_window.on_save_file_picked(move |path| {
         let Some(main_window) = main_window_weak.upgrade() else {
             return;
         };

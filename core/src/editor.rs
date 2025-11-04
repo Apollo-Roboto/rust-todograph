@@ -3,7 +3,7 @@ use crate::{
     MindTask, Point, SaveData, SaveDataMetadata, TaskGraph,
     commands::{Command, EditorCommandHistory},
 };
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use serde::Serialize;
 use std::{
     collections::{HashMap, HashSet},
@@ -53,6 +53,14 @@ impl Editor {
         self.event_callback = Box::new(func);
     }
 
+    /// Clear the editor as if it was brand new
+    pub fn clear_all(&mut self) {
+        trace!("Clearing editor");
+        self.history.clear();
+        self.state = EditorState::default();
+        info!("Cleared editor")
+    }
+
     /// Load from a file
     pub fn load(&mut self, path: impl AsRef<Path> + Debug + Clone) -> Result<(), String> {
         let start = std::time::Instant::now();
@@ -65,6 +73,10 @@ impl Editor {
 
         let data: SaveData = serde_json::from_reader(file).map_err(|e| e.to_string())?;
 
+        // no commands in the history is relevent after loading a project
+        self.history.clear();
+
+        self.state == EditorState::default();
         self.state.graph = TaskGraph::from(data.tasks);
 
         let end = std::time::Instant::now();
@@ -109,46 +121,38 @@ impl Editor {
     }
 
     pub fn execute(&mut self, cmd: Box<dyn Command>) -> Result<(), String> {
-        // TODO this should probably not silently fail
         match self.history.execute(cmd, &mut self.state) {
-            Ok(_) => {
-                self.invoke_on_event(EditorEvent::CommandSuccess);
-            }
+            Ok(_) => self.invoke_on_event(EditorEvent::CommandSuccess),
             Err(e) => {
                 warn!("Command error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
-
+        // TODO this should probably not silently fail
         Ok(())
     }
 
     pub fn undo(&mut self) -> Result<(), String> {
-        // TODO this should probably not silently fail
         match self.history.undo(&mut self.state) {
-            Ok(_) => {
-                self.invoke_on_event(EditorEvent::CommandSuccess);
-            }
+            Ok(_) => self.invoke_on_event(EditorEvent::CommandSuccess),
             Err(e) => {
                 warn!("Undo error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
+        // TODO this should probably not silently fail
         Ok(())
     }
 
     pub fn redo(&mut self) -> Result<(), String> {
-        // TODO this should probably not silently fail
         match self.history.redo(&mut self.state) {
-            Ok(_) => {
-                self.invoke_on_event(EditorEvent::CommandSuccess);
-            }
+            Ok(_) => self.invoke_on_event(EditorEvent::CommandSuccess),
             Err(e) => {
                 warn!("Redo error: {e}");
                 self.invoke_on_event(EditorEvent::CommandFailed(e));
             }
         }
-
+        // TODO this should probably not silently fail
         Ok(())
     }
 

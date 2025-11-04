@@ -7,10 +7,6 @@ export component Edge inherits Rectangle {
     in property <length> to_y;
     out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (from_y - to_y) / 1px);
 
-    // dummy comment to unbreak the color highlight that bugs when an out property has a math formula
-    // still a little bugged
-    // ) => {
-
     p := Path {
         x: 0;
         y: 0;

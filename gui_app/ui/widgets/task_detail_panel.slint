@@ -264,6 +264,11 @@ export component TaskDetailPanel inherits Rectangle {
     callback notes_submitted(string);
     callback state_changed(MindTaskState);
     callback delete_clicked();
+    clip: true;
+    border-color: black;
+    border-width: 1px;
+    border-radius: 6px;
+
     if !root.show:
     VerticalBox {
         alignment: center;
@@ -275,7 +280,6 @@ export component TaskDetailPanel inherits Rectangle {
     }
     if root.show:
     VerticalBox {
-        padding: 0;
         alignment: stretch;
         Text {
             font-family: "Consolas";

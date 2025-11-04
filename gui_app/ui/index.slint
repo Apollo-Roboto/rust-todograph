@@ -11,7 +11,7 @@ import {
 import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
 import { SelectionBoxKind } from "widgets/selection_rectangle.slint";
 import { Styles, Func } from "global.slint";
-import { MindTask, MindTaskState } from "models.slint";
+import { AppMode, MindTask, MindTaskState } from "models.slint";
 import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
@@ -20,22 +20,21 @@ import { ThemeSwitch } from "widgets/theme_switch.slint";
 import {
     FileDialogButton,
     FileDialogType,
+    FileDialogButtonGlobal,
+    FileDialogResultStatus,
 } from "widgets/file_dialog_button.slint";
 import { AboutWindowContent } from "about.slint";
 import { SelectionRectangle } from "widgets/selection_rectangle.slint";
+import { DebugForIndex } from "widgets/debug_for_index.slint";
 
-export { FileDialogButtonGlobal } from "widgets/file_dialog_button.slint";
 export { HyperlinkGlobal } from "widgets/hyperlink.slint";
-export { Func }
+export { Func, FileDialogButtonGlobal }
 
 enum TaskLoadingState {
     None, Loading, Error,
 }
 enum TaskSavingState {
     None, Saving, Error,
-}
-enum AppMode {
-    None, SetParent, AddChildren,
 }
 
 component TaskBubble {
@@ -214,10 +213,12 @@ export component AppWindow inherits Window {
     out property <bool> is_dragging_selected: false;
     out property <length> dragging_start_pos_x;
     out property <length> dragging_start_pos_y;
+    in-out property <bool> show_menu_bar: true;
+    callback quit();
     callback refresh_other();
     callback refresh_tasks();
-    callback load(path: string);
-    callback save(path: string);
+    callback open_file_picked(path: string);
+    callback save_file_picked(path: string);
     callback undo();
     callback redo();
     callback create_task(title: string, x: length, y: length);
@@ -245,16 +246,182 @@ export component AppWindow inherits Window {
         root.refresh_tasks();
         root.refresh_other();
     }
-    function _save() {
-        if root.current_file_path == "" {
-            save_as_button.open();
-        } else {
-            root.save(root.current_file_path);
+    public function center_view() {
+        workbench.move_view_to(workbench.center_x, workbench.center_y);
+    }
+    public function open_file(path: string) {
+        root.open_file_picked(path);
+    }
+    public function open() {
+        let result = FileDialogButtonGlobal.open("Open File", "", [{ text: "FireWork", extensions : ["fwork"] }], "", FileDialogType.load);
+        if result.status == FileDialogResultStatus.picked {
+            root.current_file_path = result.file;
+            root.open_file_picked(result.file);
         }
     }
+    /// Save to the current file if set, or opens the save as dialog to pick a location
+    public function save() {
+        if root.current_file_path != "" {
+            root.save_file_picked(root.current_file_path);
+            return;
+        }
+        root.save_as();
+    }
+    public function save_as() {
+        let result = FileDialogButtonGlobal.open("Save As", "", [{ text: "FireWork", extensions : ["fwork"] }], root.current_file_path, FileDialogType.save);
+        if result.status == FileDialogResultStatus.picked {
+            root.current_file_path = result.file;
+            root.save_file_picked(result.file);
+        }
+    }
+    public function new_project() {
+        root.current_file_path = "";
+        root.open_file_picked("");
+    }
+
     preferred-width: 800px;
     preferred-height: 600px;
     forward-focus: window_focus;
+
+    if root.show_menu_bar:
+    MenuBar {
+        Menu {
+            title: "File";
+            MenuItem {
+                title: "New";
+                activated => {
+                    root.new_project();
+                }
+            }
+
+            MenuItem {
+                title: "Open...";
+                activated => {
+                    root.open();
+                };
+            }
+
+            // Menu {
+            //     title: "Open recent";
+            //     for i in ["1", "2", "3", "4"]: MenuItem {
+            //         title: i;
+            //         activated => {
+            //             root.open_file(i);
+            //         };
+            //     }
+            //     MenuSeparator { }
+
+            //     MenuItem {
+            //         title: "Clear";
+            //         activated => {
+            //             debug("TODO");
+            //         }
+            //     }
+            // }
+
+            MenuSeparator { }
+
+            MenuItem {
+                title: "Save";
+                activated => {
+                    root.save();
+                };
+            }
+
+            MenuItem {
+                title: "Save as...";
+                activated => {
+                    root.save_as();
+                };
+            }
+
+            MenuSeparator { }
+
+            // MenuItem {
+            //     title: "Import...";
+            //     activated => {
+            //         debug("TODO");
+            //     }
+            // }
+
+            // Menu {
+            //     title: "Export";
+            //     MenuItem {
+            //         title: "SVG...";
+            //         activated => {
+            //             debug("TODO");
+            //         }
+            //     }
+            // }
+
+            // MenuSeparator { }
+
+            MenuItem {
+                title: "Quit";
+                activated => {
+                    // TODO: Check if the file has changes first before quitting
+                    root.quit();
+                }
+            }
+        }
+
+        Menu {
+            title: "Edit";
+            MenuItem {
+                title: "Undo";
+                enabled: root.history_past_count > 0;
+                activated => {
+                    root.undo();
+                }
+            }
+
+            MenuItem {
+                title: "Redo";
+                enabled: root.history_future_count > 0;
+                activated => {
+                    root.redo();
+                }
+            }
+
+            MenuSeparator { }
+
+            MenuItem {
+                title: "Settings";
+                activated => {
+                    debug("TODO");
+                }
+            }
+
+            MenuItem {
+                title: "Toggle theme";
+                checkable: true;
+                activated => {
+                    if self.checked {
+                        Palette.color-scheme = ColorScheme.light;
+                    } else {
+                        Palette.color-scheme = ColorScheme.dark;
+                    }
+                }
+            }
+        }
+
+        Menu {
+            title: "Help";
+            MenuItem {
+                title: "Toggle debug";
+                checkable: true;
+                checked <=> root.debug_info;
+            }
+
+            MenuItem {
+                title: "About";
+                activated => {
+                    about_window.show();
+                }
+            }
+        }
+    }
+
     window_focus := FocusScope {
         key-pressed(event) => {
             if event.text.to-lowercase() == "d" && event.modifiers.shift {
@@ -278,15 +445,15 @@ export component AppWindow inherits Window {
                 return EventResult.accept;
             }
             if event.text.to-lowercase() == "s" && event.modifiers.control && event.modifiers.shift {
-                save_as_button.open();
+                root.save_as();
                 return EventResult.accept;
             }
             if event.text.to-lowercase() == "s" && event.modifiers.control {
-                root._save();
+                root.save();
                 return EventResult.accept;
             }
             if event.text.to-lowercase() == "o" && event.modifiers.control {
-                load_button.open();
+                root.open();
                 return EventResult.accept;
             }
             if event.text == Key.Delete {
@@ -331,386 +498,251 @@ export component AppWindow inherits Window {
         }
     }
 
-    VerticalBox {
-        HorizontalBox {
-            padding: 0;
-            alignment: stretch;
-            Rectangle {
-                workbench := WorkBench {
-                    horizontal-stretch: 1;
-                    debug_info: root.debug_info;
-                    background: Styles.workbench_background_color;
-                    background_detail_color: Styles.workbench_background_details_color;
-                    selection_rectangle_border: Styles.selection_rectangle_border;
-                    selection_rectangle_fill: Styles.selection_rectangle_fill;
-                    workbench_clicked => {
-                        root.focus();
-                        root.clear_selection();
-                        root.mode = AppMode.None;
+    HorizontalBox {
+        alignment: stretch;
+        Rectangle {
+            workbench := WorkBench {
+                horizontal-stretch: 1;
+                debug_info: root.debug_info;
+                background: Styles.workbench_background_color;
+                background_detail_color: Styles.workbench_background_details_color;
+                selection_rectangle_border: Styles.selection_rectangle_border;
+                selection_rectangle_fill: Styles.selection_rectangle_fill;
+                workbench_clicked => {
+                    root.focus();
+                    root.clear_selection();
+                    root.mode = AppMode.None;
+                }
+                workbench_double_clicked => {
+                    if root.mode == AppMode.None {
+                        root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                     }
-                    workbench_double_clicked => {
-                        if root.mode == AppMode.None {
-                            root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
-                        }
+                }
+                workbench_box_selected(x1, y1, x2, y2, kind) => {
+                    root.is_dragging_selected = false;
+                    if kind == SelectionBoxKind.Set {
+                        root.set_selection_from_box(x1, y1, x2, y2);
+                        return;
                     }
-                    workbench_box_selected(x1, y1, x2, y2, kind) => {
-                        root.is_dragging_selected = false;
-                        if kind == SelectionBoxKind.Set {
-                            root.set_selection_from_box(x1, y1, x2, y2);
-                            return;
-                        }
-                        if kind == SelectionBoxKind.Add {
-                            root.add_selection_from_box(x1, y1, x2, y2);
-                            return;
-                        }
-                        if kind == SelectionBoxKind.Sub {
-                            root.remove_selection_from_box(x1, y1, x2, y2);
-                            return;
-                        }
+                    if kind == SelectionBoxKind.Add {
+                        root.add_selection_from_box(x1, y1, x2, y2);
+                        return;
                     }
-                    changed has-hover => {
-                        if self.has-hover {
-                            root.hovered_task_index = -1;
-                        }
+                    if kind == SelectionBoxKind.Sub {
+                        root.remove_selection_from_box(x1, y1, x2, y2);
+                        return;
                     }
-                    ContextMenuArea {
-                        Menu {
-                            MenuItem {
-                                title: "New Task";
-                                activated => {
-                                    root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
-                                }
+                }
+                changed has-hover => {
+                    if self.has-hover {
+                        root.hovered_task_index = -1;
+                    }
+                }
+                ContextMenuArea {
+                    Menu {
+                        MenuItem {
+                            title: "New Task";
+                            activated => {
+                                root.create_task("New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                             }
+                        }
 
-                            MenuItem {
-                                title: "Delete";
+                        MenuItem {
+                            title: "Delete";
                                 // enabled: root.has_selection // TODO
                                 activated => {
-                                    root.delete_selected();
-                                }
+                                root.delete_selected();
                             }
                         }
                     }
+                }
 
-                    // place every edges
-                    for task in tasks: //
+                // place every edges
+                for task in tasks: //
                     Rectangle {
-                        if task.parent_index != -1:
-                        Edge {
-                            // x and y adds an offset to the mouse if it is being dragged
-                            stroke: Styles.edge_color;
-                            stroke_width: 4px;
-                            // from_x: task.x;
-                            from_x: task.x + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
-                            // from_y: task.y;
-                            from_y: task.y + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
-                            // to_x: tasks[task.parent_index].x;
-                            to_x: tasks[task.parent_index].x + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
-                            // to_y: tasks[task.parent_index].y;
-                            to_y: tasks[task.parent_index].y + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
-                        }
-                    }
-
-                    // preview edge for user feedback
-                    // will snap to the hovered task if any
-                    if root.mode == AppMode.SetParent //
-                    || root.mode == AppMode.AddChildren:
+                    if task.parent_index != -1:
                     Edge {
-                        stroke: Styles.temporary_edge_color;
+                        // x and y adds an offset to the mouse if it is being dragged
+                        stroke: Styles.edge_color;
                         stroke_width: 4px;
-                        from_x: tasks[active_task_index].x;
-                        from_y: tasks[active_task_index].y;
-                        to_x: root.hovered_task_index >= 0 //
+                        // from_x: task.x;
+                        from_x: task.x + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                        // from_y: task.y;
+                        from_y: task.y + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                        // to_x: tasks[task.parent_index].x;
+                        to_x: tasks[task.parent_index].x + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                        // to_y: tasks[task.parent_index].y;
+                        to_y: tasks[task.parent_index].y + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                    }
+                }
+
+                // preview edge for user feedback
+                // will snap to the hovered task if any
+                if root.mode == AppMode.SetParent //
+                || root.mode == AppMode.AddChildren:
+                    Edge {
+                    stroke: Styles.temporary_edge_color;
+                    stroke_width: 4px;
+                    from_x: tasks[active_task_index].x;
+                    from_y: tasks[active_task_index].y;
+                    to_x: root.hovered_task_index >= 0 //
                             ? root.tasks[root.hovered_task_index].x //
                             : workbench.mouse_pos_x;
-                        to_y: root.hovered_task_index >= 0 //
+                    to_y: root.hovered_task_index >= 0 //
                             ? root.tasks[root.hovered_task_index].y //
                             : workbench.mouse_pos_y;
-                    }
+                }
 
-                    // temp bubble
-                    // bubble_b := TaskBubble {
-                    //     x: workbench.center_x + self.task.x - self.width / 2;
-                    //     y: workbench.center_y + self.task.y - self.height / 2;
-                    //     active: false;
-                    //     debug_info: root.debug_info;
-                    //     task: {
-                    //         id: 55,
-                    //         title: "Meow Meow Meow",
-                    //         x: 123px,
-                    //         y: 123px,
-                    //         completion: 50%,
-                    //         childrens: [1, 2, 3, 4],
-                    //     };
-                    //     moved_by(x, y) => {
-                    //         self.task.x = x + self.task.x;
-                    //         self.task.y = y + self.task.y;
-                    //     }
-                    // }
+                // temp bubble
+                // bubble_b := TaskBubble {
+                //     x: workbench.center_x + self.task.x - self.width / 2;
+                //     y: workbench.center_y + self.task.y - self.height / 2;
+                //     active: false;
+                //     debug_info: root.debug_info;
+                //     task: {
+                //         id: 55,
+                //         title: "Meow Meow Meow",
+                //         x: 123px,
+                //         y: 123px,
+                //         completion: 50%,
+                //         childrens: [1, 2, 3, 4],
+                //     };
+                //     moved_by(x, y) => {
+                //         self.task.x = x + self.task.x;
+                //         self.task.y = y + self.task.y;
+                //     }
+                // }
 
-                    // place every tasks
-                    for task[index] in tasks: TaskBubble {
-                        // x and y adds an offset to the mouse if it is being dragged
-                        x: workbench.center_x + task.x - self.width / 2 + ( //
+                // place every tasks
+                for task[index] in tasks: TaskBubble {
+                    // x and y adds an offset to the mouse if it is being dragged
+                    x: workbench.center_x + task.x - self.width / 2 + ( //
                             root.is_dragging_selected && task.selected //
                             ? workbench.mouse_pos_x - root.dragging_start_pos_x //
                             : 0);
-                        y: workbench.center_y + task.y - self.height / 2 + ( //
+                    y: workbench.center_y + task.y - self.height / 2 + ( //
                             root.is_dragging_selected && task.selected //
                             ? workbench.mouse_pos_y - root.dragging_start_pos_y //
                             : 0);
-                        task: task;
-                        active: root.active_task_index == index;
-                        debug_info: root.debug_info;
-                        changed has-hover => {
-                            if self.has-hover {
-                                root.hovered_task_index = index;
-                            }
+                    task: task;
+                    active: root.active_task_index == index;
+                    debug_info: root.debug_info;
+                    changed has-hover => {
+                        if self.has-hover {
+                            root.hovered_task_index = index;
                         }
-                        delete_clicked() => {
-                            root.delete_task(task.id);
+                    }
+                    delete_clicked() => {
+                        root.delete_task(task.id);
+                    }
+                    state_change_clicked(state) => {
+                        root.change_state(task.id, state)
+                    }
+                    set_parent_clicked => {
+                        root.set_active_task(task.id, false);
+                        root.mode = AppMode.SetParent;
+                    }
+                    remove_parent_clicked => {
+                        root.unset_parent_from_task(task.id);
+                    }
+                    add_children_clicked => {
+                        root.set_active_task(task.id, false);
+                        root.mode = AppMode.AddChildren;
+                    }
+                    new_children_clicked => {
+                        root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
+                    }
+                    left_mouse_down(event) => {
+                        root.focus();
+                        if root.mode == AppMode.SetParent {
+                            root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
+                            root.mode = AppMode.None;
+                            return;
                         }
-                        state_change_clicked(state) => {
-                            root.change_state(task.id, state)
+                        if root.mode == AppMode.AddChildren {
+                            root.set_parent_to_task(task.id, root.tasks[active_task_index].id);
+                            root.mode = AppMode.None;
+                            return;
                         }
-                        set_parent_clicked => {
+
+                        // handle Blender style selection clicks
+                        if self.active && event.modifiers.shift {
+                            root.clear_active_task(false);
+                        } else if !self.active && event.modifiers.shift {
+                            root.set_active_task(task.id, true);
+                        } else if !task.selected && !event.modifiers.shift {
                             root.set_active_task(task.id, false);
-                            root.mode = AppMode.SetParent;
                         }
-                        remove_parent_clicked => {
-                            root.unset_parent_from_task(task.id);
-                        }
-                        add_children_clicked => {
-                            root.set_active_task(task.id, false);
-                            root.mode = AppMode.AddChildren;
-                        }
-                        new_children_clicked => {
-                            root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
-                        }
-                        left_mouse_down(event) => {
-                            root.focus();
-                            if root.mode == AppMode.SetParent {
-                                root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
-                                root.mode = AppMode.None;
-                                return;
-                            }
-                            if root.mode == AppMode.AddChildren {
-                                root.set_parent_to_task(task.id, root.tasks[active_task_index].id);
-                                root.mode = AppMode.None;
-                                return;
-                            }
 
-                            // handle Blender style selection clicks
-                            if self.active && event.modifiers.shift {
-                                root.clear_active_task(false);
-                            } else if !self.active && event.modifiers.shift {
-                                root.set_active_task(task.id, true);
-                            } else if !task.selected && !event.modifiers.shift {
-                                root.set_active_task(task.id, false);
-                            }
-
-                            // start moving selected
-                            if !event.modifiers.shift {
-                                root.is_dragging_selected = true;
-                                root.dragging_start_pos_x = workbench.mouse_pos_x;
-                                root.dragging_start_pos_y = workbench.mouse_pos_y;
-                            }
+                        // start moving selected
+                        if !event.modifiers.shift {
+                            root.is_dragging_selected = true;
+                            root.dragging_start_pos_x = workbench.mouse_pos_x;
+                            root.dragging_start_pos_y = workbench.mouse_pos_y;
                         }
-                        left_mouse_up(event) => {
-                            if root.is_dragging_selected {
-                                if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {
-                                    root.selected_move_dropped(workbench.mouse_pos_x - root.dragging_start_pos_x, workbench.mouse_pos_y - root.dragging_start_pos_y);
-                                } else {
+                    }
+                    left_mouse_up(event) => {
+                        if root.is_dragging_selected {
+                            if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {
+                                root.selected_move_dropped(workbench.mouse_pos_x - root.dragging_start_pos_x, workbench.mouse_pos_y - root.dragging_start_pos_y);
+                            } else {
 
-                                    // handle Blender style selection clicks
-                                    if !event.modifiers.shift {
-                                        root.set_active_task(task.id, false);
-                                    }
+                                // handle Blender style selection clicks
+                                if !event.modifiers.shift {
+                                    root.set_active_task(task.id, false);
                                 }
-                                root.is_dragging_selected = false;
-                                return;
                             }
+                            root.is_dragging_selected = false;
+                            return;
                         }
-                    }
-                }
-
-                // debug overlay
-                VerticalBox {
-                    visible: root.debug_info;
-                    alignment: start;
-                    private property <string> font: "Consolas";
-                    Text {
-                        font-family: parent.font;
-                        text: "Version: " + root.app_version + " (" + (root.is_release ? "Release" : "Development") + ")";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: root.current_file_path == "" //
-                            ? "Current File: None" //
-                            : "Current File: " + root.current_file_path;
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: root.last_command == "" //
-                            ? "Last Command: None" //
-                            : "Last Command: " + root.last_command;
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "History Past/Future: " + root.history_past_count + "/" + root.history_future_count + " (" + root.history_limit + ")";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "Root has focus: " + (root.has_focus ? "True" : "False");
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "View Position: (" + Math.round(workbench.view_pos_x / 1px) + "," + Math.round(workbench.view_pos_y / 1px) + ")";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "Cursor Position: (" + Math.round(workbench.mouse_pos_x / 1px) + ", " + Math.round(workbench.mouse_pos_y / 1px) + ")";
-                    }
-
-                    Text {
-                        text: "Number of Tasks: " + root.tasks.length;
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
-                    }
-
-                    Text {
-                        text: root.active_task_index >= 0 //
-                            ? "Active Task: #" + root.tasks[active_task_index].id //
-                            : "Active Task: None";
-                    }
-
-                    Text {
-                        text: root.hovered_task_index >= 0 //
-                            ? "Hovered Task: #" + root.tasks[hovered_task_index].id //
-                            : "Hovered Task: None";
-                    }
-
-                    Text {
-                        font-family: parent.font;
-                        text: root.mode == AppMode.None ? "Application Mode: None" //
-                            : root.mode == AppMode.AddChildren ? "Application Mode: AddChildren" //
-                            : root.mode == AppMode.SetParent ? "Application Mode: SetParent" //
-                            : "Mode: AAAAAAAAAAAAA";
-                    }
-
-                    Text {
-                        text: "Dragging selected: " + (root.is_dragging_selected ? "True" : "False");
                     }
                 }
             }
 
-            if root.active_task_index >= 0:
-            TaskDetailPanel {
-                task: root.tasks[active_task_index];
-                show: root.active_task_index != -1;
-                width: 380px;
-                delete_clicked => {
-                    root.delete_task(root.tasks[active_task_index].id);
-                }
-                title_changed(value) => {
-                    root.tasks[active_task_index].title = value;
-                }
-                title_submitted(value) => {
-                    root.rename_task(root.tasks[active_task_index].id, value);
-                }
-                notes_submitted(value) => {
-                    root.set_task_notes(root.tasks[active_task_index].id, value);
-                }
-                state_changed(value) => {
-                    root.change_state(root.tasks[active_task_index].id, value);
-                }
-                lock_released => {
-                    root.focus();
-                }
+            if root.debug_info:
+            DebugForIndex {
+                active_task_id: root.active_task_index >= 0 ? root.tasks[root.active_task_index].id : root.active_task_index;
+                app_mode: root.mode;
+                app_version: root.app_version;
+                current_file_path: root.current_file_path;
+                history_future_count: root.history_future_count;
+                history_limit: root.history_limit;
+                history_past_count: root.history_past_count;
+                hovered_task_id: root.hovered_task_index >= 0 ? root.tasks[root.hovered_task_index].id : root.hovered_task_index;
+                index_has_focus: root.has_focus;
+                is_release: root.is_release;
+                last_command: root.last_command;
+                num_of_tasks: root.tasks.length;
+                overall_progress: root.overall_progress;
+                workbench_mouse_pos_x: workbench.mouse_pos_x;
+                workbench_mouse_pos_y: workbench.mouse_pos_y;
+                workbench_view_pos_x: workbench.view_pos_x;
+                workbench_view_pos_y: workbench.view_pos_y;
             }
         }
 
-        // button controls
-        HorizontalBox {
-            padding: 0px;
-            Button {
-                text: "Center View";
-                clicked => {
-                    workbench.move_view_to(workbench.center_x, workbench.center_y);
-                }
+        if root.active_task_index >= 0:
+        TaskDetailPanel {
+            task: root.tasks[active_task_index];
+            show: root.active_task_index >= 0;
+            width: 380px;
+            delete_clicked => {
+                root.delete_task(root.tasks[active_task_index].id);
             }
-
-            Button {
-                text: "Undo";
-                enabled: root.history_past_count > 0;
-                clicked => {
-                    root.undo();
-                }
+            title_changed(value) => {
+                root.tasks[active_task_index].title = value;
             }
-
-            Button {
-                text: "Redo";
-                enabled: root.history_future_count > 0;
-                clicked => {
-                    root.redo();
-                }
+            title_submitted(value) => {
+                root.rename_task(root.tasks[active_task_index].id, value);
             }
-
-            ThemeSwitch { }
-
-            Rectangle {
-                horizontal-stretch: 1;
+            notes_submitted(value) => {
+                root.set_task_notes(root.tasks[active_task_index].id, value);
             }
-
-            CheckBox {
-                text: "Debug Info";
-                checked <=> root.debug_info;
+            state_changed(value) => {
+                root.change_state(root.tasks[active_task_index].id, value);
             }
-
-            Button {
-                text: "About";
-                clicked => {
-                    about_window.show();
-                }
-            }
-
-            load_button := FileDialogButton {
-                text: "Load";
-                title: "Load File";
-                filters: [{ text: "FireWork", extensions : ["fwork"] }];
-                type: FileDialogType.load;
-                picked(path) => {
-                    root.current_file_path = path;
-                    root.load(path);
-                }
-            }
-
-            save_as_button := FileDialogButton {
-                text: "Save as";
-                title: "Save As";
-                filters: [{ text: "FireWork", extensions : ["fwork"] }];
-                default_file: root.current_file_path;
-                type: FileDialogType.save;
-                picked(path) => {
-                    root.current_file_path = path;
-                    root.save(path);
-                }
-            }
-
-            Button {
-                text: "Save";
-                clicked => {
-                    root._save();
-                }
+            lock_released => {
+                root.focus();
             }
         }
     }

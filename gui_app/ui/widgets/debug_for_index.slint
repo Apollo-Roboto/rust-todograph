@@ -1,0 +1,96 @@
+import { VerticalBox } from "std-widgets.slint";
+import { AppMode } from "../models.slint";
+
+/// List of text for random properties that I want to track
+export component DebugForIndex inherits VerticalBox {
+
+    in property <int> active_task_id: -1;
+    in property <AppMode> app_mode;
+    in property <string> app_version;
+    in property <string> current_file_path;
+    in property <int> history_future_count;
+    in property <int> history_limit;
+    in property <int> history_past_count;
+    in property <int> hovered_task_id: -1;
+    in property <bool> index_has_focus;
+    in property <bool> is_release;
+    in property <string> last_command;
+    in property <int> num_of_tasks;
+    in property <int> overall_progress;
+    in property <length> workbench_mouse_pos_x;
+    in property <length> workbench_mouse_pos_y;
+    in property <length> workbench_view_pos_x;
+    in property <length> workbench_view_pos_y;
+
+    alignment: start;
+    private property <string> font: "Consolas";
+
+    Text {
+        font-family: parent.font;
+        text: "Version: " + root.app_version + " (" + (root.is_release ? "Release" : "Development") + ")";
+    }
+
+    Text {
+        font-family: parent.font;
+        text: root.current_file_path == "" //
+            ? "Current File: None" //
+            : "Current File: " + root.current_file_path;
+    }
+
+    Text {
+        font-family: parent.font;
+        text: root.last_command == "" //
+            ? "Last Command: None" //
+            : "Last Command: " + root.last_command;
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "History Past/Future: " + root.history_past_count + "/" + root.history_future_count + " (" + root.history_limit + ")";
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "Index has focus: " + (root.index_has_focus ? "True" : "False");
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "View Position: (" + Math.round(root.workbench_view_pos_x / 1px) + "," + Math.round(root.workbench_view_pos_y / 1px) + ")";
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "Cursor Position: (" + Math.round(root.workbench_mouse_pos_x / 1px) + ", " + Math.round(root.workbench_mouse_pos_y / 1px) + ")";
+    }
+
+    Text {
+        text: "Number of Tasks: " + root.num_of_tasks;
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "Overall Progress: " + Math.round(root.overall_progress * 100) + "%";
+    }
+
+    Text {
+        text: root.active_task_id >= 0 //
+            ? "Active Task: #" + root.active_task_id //
+            : "Active Task: None";
+    }
+
+    Text {
+        text: root.hovered_task_id >= 0 //
+            ? "Hovered Task: #" + root.hovered_task_id //
+            : "Hovered Task: None";
+    }
+
+    Text {
+        font-family: parent.font;
+        text: "Application Mode: " + (root.app_mode == AppMode.None ? "None" //
+                                    : root.app_mode == AppMode.AddChildren ? "AddChildren" //
+                                    : root.app_mode == AppMode.SetParent ? "SetParent" //
+                                    : root.app_mode == AppMode.DraggingSelected ? "SetParent" //
+                                    : "AAAAAAAAAAAAA");
+    }
+}
