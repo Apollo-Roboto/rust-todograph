@@ -45,10 +45,13 @@ fn editor_task_to_ui_task(task_id: u32, editor: &Editor) -> Result<ui::MindTask,
         return Err(());
     };
 
-    let childrens = std::rc::Rc::new(slint::VecModel::from_iter(
-        task.childrens.iter().map(|id| *id as i32),
-    ))
-    .into();
+    let childrens = editor
+        .state
+        .graph
+        .iter_children_of_task(task_id)
+        .map(|t| t.id as i32);
+
+    let childrens = std::rc::Rc::new(slint::VecModel::from_iter(childrens)).into();
 
     let parent_index = editor
         .state
@@ -80,10 +83,13 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
         .tasks
         .iter()
         .map(|task| {
-            let childrens = std::rc::Rc::new(slint::VecModel::from_iter(
-                task.childrens.iter().map(|id| *id as i32),
-            ))
-            .into();
+            let childrens = editor
+                .state
+                .graph
+                .iter_children_of_task(task.id)
+                .map(|t| t.id as i32);
+
+            let childrens = std::rc::Rc::new(slint::VecModel::from_iter(childrens)).into();
 
             let parent_index = editor
                 .state

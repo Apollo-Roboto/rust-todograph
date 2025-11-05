@@ -1,18 +1,18 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
 use crate::MindTask;
 use crate::commands::Command;
 use crate::editor::EditorState;
 
-/// Create a task
 #[derive(Debug, Clone)]
 pub struct DuplicateSelectedCommand {
     items_to_duplicate: Option<Vec<MindTask>>,
     previously_active: Option<Option<u32>>,
     original_selection: Option<HashSet<u32>>,
+    creation_time: Option<DateTime<Utc>>,
 }
 impl DuplicateSelectedCommand {
     pub fn new() -> Self {
@@ -20,6 +20,7 @@ impl DuplicateSelectedCommand {
             items_to_duplicate: None,
             previously_active: None,
             original_selection: None,
+            creation_time: None,
         }
     }
 }
@@ -40,11 +41,13 @@ impl Command for DuplicateSelectedCommand {
 
             self.original_selection = Some(items_to_duplicate.iter().map(|t| t.id).collect());
 
-            for item in &mut items_to_duplicate {
+            let mut active_task_index = None;
+
+            for (i, item) in &mut items_to_duplicate.iter_mut().enumerate() {
                 item.selected = false;
                 if Some(item.id) == editor.active_task {
                     self.previously_active = Some(editor.active_task);
-                    editor.active_task = None;
+                    active_task_index = Some(i);
                 }
             }
 
@@ -55,12 +58,44 @@ impl Command for DuplicateSelectedCommand {
                 .map(|t| (*t).clone())
                 .collect();
 
-            let now = Utc::now();
+            let now = match self.creation_time {
+                Some(time) => time,
+                None => {
+                    let now = Utc::now();
+                    self.creation_time = Some(now);
+                    now
+                }
+            };
+
+            let mut old_new_id_mapping: HashMap<u32, u32> = HashMap::new();
 
             for item in &mut cloned_items {
-                item.id = editor.graph.generate_id();
+                let original_id = item.id;
+                let new_id = editor.graph.generate_id();
+
+                old_new_id_mapping.insert(original_id, new_id);
+
+                item.id = new_id;
                 item.creation_date = now;
                 item.selected = true;
+            }
+
+            // update the parents to the new ids
+            for item in &mut cloned_items {
+                if let Some(old_parent_id) = item.parent {
+                    let Some(new_parent_id) = old_new_id_mapping.get(&old_parent_id) else {
+                        continue;
+                    };
+                    item.parent = Some(*new_parent_id);
+                } else {
+                    item.parent = None;
+                }
+            }
+
+            if let Some(active_index) = active_task_index
+                && let Some(new_active_task) = cloned_items.get(active_index)
+            {
+                editor.active_task = Some(new_active_task.id);
             }
 
             self.items_to_duplicate = Some(cloned_items);
@@ -98,29 +133,49 @@ impl Command for DuplicateSelectedCommand {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
+    use serde_json::{Value, json};
 
     use super::*;
 
     #[test]
+    #[rustfmt::skip]
     fn test_undo_redo() {
         let mut state = EditorState::default();
 
         let id1 = state.graph.generate_id();
+        let id2 = state.graph.generate_id();
+        let id3 = state.graph.generate_id();
+        let id4 = state.graph.generate_id();
+        let id5 = state.graph.generate_id();
+
         state.graph.tasks.push(crate::MindTask {
             id: id1,
+            title: String::from("find me id1"),
+            selected: true,
             ..Default::default()
         });
-        let id2 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id2,
+            title: String::from("find me id2"),
+            parent: Some(id1),
             selected: true,
             ..Default::default()
         });
-        let id3 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id3,
+            title: String::from("find me id3"),
+            parent: Some(id1),
             selected: true,
+            ..Default::default()
+        });
+        state.graph.tasks.push(crate::MindTask {
+            id: id4,
+            title: String::from("find me id4"),
+            selected: true,
+            ..Default::default()
+        });
+        state.graph.tasks.push(crate::MindTask {
+            id: id5,
             ..Default::default()
         });
 
@@ -131,36 +186,69 @@ mod test {
         let state_before_execute = state.clone();
 
         cmd.execute(&mut state).unwrap();
+
         assert_ne!(
             state_before_execute, state,
             "The state was supposed to change"
         );
 
-        assert_eq!(state.active_task, None);
-        assert_eq!(state.graph.tasks.len(), 5);
+        fn get_original_item(state: &EditorState, id: u32) -> &MindTask {
+            state.graph.tasks.iter().find(|t| t.id == id).unwrap()
+        }
+        fn get_duplicated_item<'a, 'b>(state: &'a EditorState, title: &'b str, id: u32,) -> &'a MindTask {
+            state.graph.tasks.iter().find(|t| t.title == title.to_string() && t.id != id).unwrap()
+        }
 
-        let selected: HashSet<u32> = state
-            .graph
-            .tasks
-            .iter()
-            .filter(|t| t.selected)
-            .cloned()
-            .map(|t| t.id)
-            .collect();
+        let original_id1 = get_original_item(&state, id1);
+        let original_id2 = get_original_item(&state, id2);
+        let original_id3 = get_original_item(&state, id3);
+        let original_id4 = get_original_item(&state, id4);
+        let duplicate_of_id1 = get_duplicated_item(&state, "find me id1", id1);
+        let duplicate_of_id2 = get_duplicated_item(&state, "find me id2", id2);
+        let duplicate_of_id3 = get_duplicated_item(&state, "find me id3", id3);
+        let duplicate_of_id4 = get_duplicated_item(&state, "find me id4", id4);
 
-        // Check that the selection is now on the new items
-        assert_eq!(selected.len(), 2);
-        assert!(!selected.contains(&id1));
-        assert!(!selected.contains(&id2));
-        assert!(!selected.contains(&id3));
+        let mut expectation: Vec<(&str, Value)> = Vec::new();
+        expectation.push(("duplicate_of_id1_parent", Value::Null));
+        expectation.push(("duplicate_of_id2_parent", json!(Some(duplicate_of_id1.id))));
+        expectation.push(("duplicate_of_id3_parent", json!(Some(duplicate_of_id1.id))));
+        expectation.push(("duplicate_of_id4_parent", Value::Null));
+        expectation.push(("duplicate_of_id1_selected", json!(true)));
+        expectation.push(("duplicate_of_id2_selected", json!(true)));
+        expectation.push(("duplicate_of_id3_selected", json!(true)));
+        expectation.push(("duplicate_of_id4_selected", json!(true)));
+        expectation.push(("original_id1_selected", json!(false)));
+        expectation.push(("original_id2_selected", json!(false)));
+        expectation.push(("original_id3_selected", json!(false)));
+        expectation.push(("original_id4_selected", json!(false)));
+        expectation.push(("selection_count", json!(4)));
+        expectation.push(("active_task", json!(Some(duplicate_of_id2.id))));
+
+        let mut result: Vec<(&str, Value)> = Vec::new();
+        result.push(("duplicate_of_id1_parent", json!(duplicate_of_id1.parent)));
+        result.push(("duplicate_of_id2_parent", json!(duplicate_of_id2.parent)));
+        result.push(("duplicate_of_id3_parent", json!(duplicate_of_id3.parent)));
+        result.push(("duplicate_of_id4_parent", json!(duplicate_of_id4.parent)));
+        result.push(("duplicate_of_id1_selected", json!(duplicate_of_id1.selected)));
+        result.push(("duplicate_of_id2_selected", json!(duplicate_of_id2.selected)));
+        result.push(("duplicate_of_id3_selected", json!(duplicate_of_id3.selected)));
+        result.push(("duplicate_of_id4_selected", json!(duplicate_of_id4.selected)));
+        result.push(("original_id1_selected", json!(original_id1.selected)));
+        result.push(("original_id2_selected", json!(original_id2.selected)));
+        result.push(("original_id3_selected", json!(original_id3.selected)));
+        result.push(("original_id4_selected", json!(original_id4.selected)));
+        result.push(("selection_count", json!(state.graph.tasks.iter().filter(|t| t.selected).count())));
+        result.push(("active_task", json!(state.active_task)));
+
+        pretty_assertions::assert_eq!(expectation, result);
 
         cmd.undo(&mut state).unwrap();
-        assert_eq!(
+        pretty_assertions::assert_eq!(
             state_before_execute, state,
             "The state was supposed to be identical to before"
         );
         cmd.execute(&mut state).unwrap();
-        assert_ne!(
+        pretty_assertions::assert_ne!(
             state_before_execute, state,
             "The state was supposed to change"
         );

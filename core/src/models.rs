@@ -1,5 +1,6 @@
-use std::{collections::HashSet, fmt::Display};
+use std::fmt::Display;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -56,6 +57,10 @@ impl std::ops::SubAssign for Point {
 
 impl Point {
     pub const ZERO: Self = Self { x: 0., y: 0. };
+    pub const NORTH: Self = Self { x: 0., y: -1. };
+    pub const SOUTH: Self = Self { x: 0., y: 1. };
+    pub const WEST: Self = Self { x: -1., y: 0. };
+    pub const EAST: Self = Self { x: 1., y: 0. };
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
@@ -143,29 +148,28 @@ pub struct MindTask {
     /// Linked parent task if any, parent should contain this task's id as children
     #[serde(default)]
     pub parent: Option<u32>,
-    /// Linked children tasks if any, children should contain this tasks's id as parent
-    #[serde(default)]
-    pub childrens: HashSet<u32>,
 }
 
 impl MindTask {
     pub fn is_root(&self) -> bool {
         self.parent.is_none()
     }
-    pub fn is_leaf(&self) -> bool {
-        self.childrens.is_empty()
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveData {
     pub metadata: SaveDataMetadata,
+    #[serde(default)]
     pub tasks: Vec<MindTask>,
+    #[serde(default)]
+    pub view_pos: Point,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDataMetadata {
     pub version: String,
+    #[serde(default)]
+    pub save_date: Option<DateTime<Utc>>,
 }
 
 #[cfg(test)]

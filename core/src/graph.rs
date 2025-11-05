@@ -43,23 +43,11 @@ impl TaskGraph {
             task.parent = Some(parent_id);
         };
 
-        // remove children from previous parent
-        if let Some(previous_parent) = previous_parent
-            && previous_parent != parent_id
-            && let Some(parent) = self.tasks.iter_mut().find(|t| t.id == previous_parent)
-        {
-            parent.childrens.remove(&task_id);
-        }
-
-        if let Some(parent) = self.tasks.iter_mut().find(|t| t.id == parent_id) {
-            parent.childrens.insert(task_id);
-        };
-
         previous_parent
     }
 
     /// Removes link to parent
-    /// Returns the previous parent
+    /// Returns the previous parent id
     pub fn unlink_parent(&mut self, task_id: u32) -> Option<u32> {
         let mut parent_id = None;
 
@@ -68,38 +56,7 @@ impl TaskGraph {
             task.parent = None;
         };
 
-        if let Some(parent) = self.tasks.iter_mut().find(|t| Some(t.id) == parent_id) {
-            parent.childrens.remove(&task_id);
-        };
-
         parent_id
-    }
-
-    /// Removes link to childrens
-    pub fn unlink_children(&mut self, task_id: u32, children_id: u32) {
-        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
-            task.childrens.remove(&children_id);
-        };
-
-        if let Some(children) = self.tasks.iter_mut().find(|t| t.id == children_id) {
-            children.parent = None;
-        };
-    }
-
-    /// Removes links to parent and childrens
-    /// Useful before deleting a task
-    pub fn unlink_all(&mut self, task_id: u32) {
-        let mut children_ids = HashSet::new();
-
-        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
-            children_ids = task.childrens.clone();
-        };
-
-        self.unlink_parent(task_id);
-
-        for children_id in children_ids {
-            self.unlink_children(task_id, children_id);
-        }
     }
 
     /// Check if an id already exists
@@ -107,22 +64,13 @@ impl TaskGraph {
         self.tasks.iter().any(|t| t.id == id)
     }
 
-    /// Create a task and establishes it's relations
+    /// Create a task
     pub fn create_task(&mut self, task: MindTask) {
-        if let Some(parent_id) = task.parent {
-            self.set_parent(task.id, parent_id);
-        }
-        for child in task.childrens.iter() {
-            self.set_parent(*child, task.id);
-        }
         self.tasks.push(task);
     }
 
-    /// Removes a task and break connections acordingly
+    /// Removes a task
     pub fn delete_task(&mut self, task_id: u32) {
-        self.unlink_all(task_id);
-
-        // remove from task list
         if let Some(task) = self.tasks.iter().position(|t| t.id == task_id) {
             self.tasks.remove(task);
         }
@@ -145,10 +93,18 @@ impl TaskGraph {
         }
     }
 
+    pub fn iter_children_of_task(&self, parent_id: u32) -> impl Iterator<Item = &MindTask> {
+        self.tasks
+            .iter()
+            .filter(move |t| t.parent.is_some_and(|p| p == parent_id))
+    }
+
     pub fn calc_progress(&self, task_id: u32) -> Option<f32> {
         let task = self.tasks.iter().find(|t| t.id == task_id)?;
 
-        if task.childrens.is_empty() {
+        let children: Vec<&MindTask> = self.iter_children_of_task(task_id).collect();
+
+        if children.is_empty() {
             let value = match task.state {
                 MindTaskState::Todo => 0.0,
                 MindTaskState::Doing => 0.0,
@@ -156,21 +112,17 @@ impl TaskGraph {
             };
             return Some(value);
         }
-        let child_count = task.childrens.len() as f32;
+        let child_count = children.len() as f32;
 
         let mut current_percent = 0.0;
 
-        for children_id in &task.childrens {
-            let Some(children) = self.tasks.iter().find(|t| t.id == *children_id) else {
-                unreachable!("Children should always exists");
-            };
-
-            if children.state == MindTaskState::Done {
+        for child in children {
+            if child.state == MindTaskState::Done {
                 current_percent += 1.0 / child_count;
                 continue;
             }
 
-            let child_completion = self.calc_progress(children.id).unwrap_or(0.0);
+            let child_completion = self.calc_progress(child.id).unwrap_or(0.0);
             current_percent += child_completion / child_count;
         }
 
@@ -228,11 +180,7 @@ impl TaskGraph {
 
     pub fn count_leaf(&self) -> usize {
         let mut count = 0;
-        self.tasks.iter().for_each(|t| {
-            if t.is_leaf() {
-                count += 1;
-            }
-        });
+        todo!();
         count
     }
 }
@@ -267,7 +215,6 @@ mod test {
                 id: 0,
                 state: MindTaskState::Doing,
                 parent: None,
-                childrens: HashSet::from([1, 2, 3]),
                 ..Default::default()
             },
             MindTask {
@@ -301,14 +248,12 @@ mod test {
             MindTask {
                 id: 1,
                 state: MindTaskState::Doing,
-                childrens: HashSet::from([2, 3]),
                 ..Default::default()
             },
             MindTask {
                 id: 2,
                 state: MindTaskState::Done,
                 parent: Some(1),
-                childrens: HashSet::from([4, 5]),
                 ..Default::default()
             },
             MindTask {

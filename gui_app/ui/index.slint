@@ -210,7 +210,6 @@ export component AppWindow inherits Window {
     out property <int> hovered_task_index: -1;
     in-out property <string> current_file_path: "";
     out property <bool> has_focus <=> window_focus.has-focus;
-    out property <bool> is_dragging_selected: false;
     out property <length> dragging_start_pos_x;
     out property <length> dragging_start_pos_y;
     in-out property <bool> show_menu_bar: true;
@@ -519,7 +518,7 @@ export component AppWindow inherits Window {
                     }
                 }
                 workbench_box_selected(x1, y1, x2, y2, kind) => {
-                    root.is_dragging_selected = false;
+                    root.mode = AppMode.None;
                     if kind == SelectionBoxKind.Set {
                         root.set_selection_from_box(x1, y1, x2, y2);
                         return;
@@ -566,13 +565,13 @@ export component AppWindow inherits Window {
                         stroke: Styles.edge_color;
                         stroke_width: 4px;
                         // from_x: task.x;
-                        from_x: task.x + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                        from_x: task.x + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
                         // from_y: task.y;
-                        from_y: task.y + (root.is_dragging_selected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                        from_y: task.y + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
                         // to_x: tasks[task.parent_index].x;
-                        to_x: tasks[task.parent_index].x + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                        to_x: tasks[task.parent_index].x + (root.mode == AppMode.DraggingSelected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
                         // to_y: tasks[task.parent_index].y;
-                        to_y: tasks[task.parent_index].y + (root.is_dragging_selected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                        to_y: tasks[task.parent_index].y + (root.mode == AppMode.DraggingSelected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
                     }
                 }
 
@@ -617,11 +616,11 @@ export component AppWindow inherits Window {
                 for task[index] in tasks: TaskBubble {
                     // x and y adds an offset to the mouse if it is being dragged
                     x: workbench.center_x + task.x - self.width / 2 + ( //
-                            root.is_dragging_selected && task.selected //
+                            root.mode == AppMode.DraggingSelected && task.selected //
                             ? workbench.mouse_pos_x - root.dragging_start_pos_x //
                             : 0);
                     y: workbench.center_y + task.y - self.height / 2 + ( //
-                            root.is_dragging_selected && task.selected //
+                            root.mode == AppMode.DraggingSelected && task.selected //
                             ? workbench.mouse_pos_y - root.dragging_start_pos_y //
                             : 0);
                     task: task;
@@ -676,13 +675,13 @@ export component AppWindow inherits Window {
 
                         // start moving selected
                         if !event.modifiers.shift {
-                            root.is_dragging_selected = true;
+                            root.mode = AppMode.DraggingSelected;
                             root.dragging_start_pos_x = workbench.mouse_pos_x;
                             root.dragging_start_pos_y = workbench.mouse_pos_y;
                         }
                     }
                     left_mouse_up(event) => {
-                        if root.is_dragging_selected {
+                        if root.mode == AppMode.DraggingSelected {
                             if workbench.mouse_pos_x != root.dragging_start_pos_x || workbench.mouse_pos_y != root.dragging_start_pos_y {
                                 root.selected_move_dropped(workbench.mouse_pos_x - root.dragging_start_pos_x, workbench.mouse_pos_y - root.dragging_start_pos_y);
                             } else {
@@ -692,7 +691,7 @@ export component AppWindow inherits Window {
                                     root.set_active_task(task.id, false);
                                 }
                             }
-                            root.is_dragging_selected = false;
+                            root.mode = AppMode.None;
                             return;
                         }
                     }

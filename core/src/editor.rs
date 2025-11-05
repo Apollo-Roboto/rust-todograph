@@ -3,6 +3,7 @@ use crate::{
     MindTask, Point, SaveData, SaveDataMetadata, TaskGraph,
     commands::{Command, EditorCommandHistory},
 };
+use chrono::Utc;
 use log::{debug, info, trace, warn};
 use serde::Serialize;
 use std::{
@@ -31,7 +32,8 @@ pub enum EditorEvent {
 pub struct EditorState {
     pub graph: TaskGraph,
     pub active_task: Option<u32>,
-    pub pan_zoom: (Point, f32),
+    pub view_pos: Point,
+    pub view_zoom: f32,
 }
 
 pub struct Editor {
@@ -94,8 +96,10 @@ impl Editor {
         let data = SaveData {
             metadata: SaveDataMetadata {
                 version: crate::APPLICATION_VERSION.to_string(),
+                save_date: Some(Utc::now()),
             },
             tasks: self.state.graph.tasks.clone(),
+            view_pos: self.state.view_pos,
         };
 
         let file = OpenOptions::new()
@@ -170,28 +174,30 @@ mod tests {
     #[test]
     fn test_load() {
         let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/sample.fwork");
-
         let mut editor = Editor::default();
-
         let res = editor.load(file_path);
-
         res.expect("Failed to load file");
-
         assert!(!editor.state.graph.tasks.is_empty());
+    }
+
+    #[test]
+    fn test_load_minimal() {
+        let file_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/minimal_sample.fwork");
+        let mut editor = Editor::default();
+        let res = editor.load(file_path);
+        res.expect("Failed to load file");
+        pretty_assertions::assert_eq!(editor.state, EditorState::default());
     }
 
     #[test]
     fn test_save() {
         let temp_file = tempfile::NamedTempFile::new().unwrap();
         let path = temp_file.path();
-
         let mut editor = Editor::default();
-
         let res = editor.save(path);
-
         let data: SaveData =
             serde_json::from_reader(temp_file).expect("Failed to deserialized saved file");
-
         res.expect("Failed to save file");
     }
 }
