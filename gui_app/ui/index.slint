@@ -562,7 +562,7 @@ export component AppWindow inherits Window {
                     if task.parent_index != -1:
                     Edge {
                         // x and y adds an offset to the mouse if it is being dragged
-                        stroke: Styles.edge_color;
+                        stroke: Styles.edge_color_child_side;
                         stroke_width: 4px;
                         // from_x: task.x;
                         from_x: task.x + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
@@ -592,15 +592,15 @@ export component AppWindow inherits Window {
                             : workbench.mouse_pos_y;
                 }
 
-                // temp bubble
-                // bubble_b := TaskBubble {
+                // // temp bubble
+                // bubble_a := TaskBubble {
                 //     x: workbench.center_x + self.task.x - self.width / 2;
                 //     y: workbench.center_y + self.task.y - self.height / 2;
                 //     active: false;
                 //     debug_info: root.debug_info;
                 //     task: {
                 //         id: 55,
-                //         title: "Meow Meow Meow",
+                //         title: "A",
                 //         x: 123px,
                 //         y: 123px,
                 //         completion: 50%,

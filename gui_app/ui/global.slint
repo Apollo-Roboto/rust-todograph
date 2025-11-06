@@ -20,8 +20,10 @@ export global Styles {
         ? #ed5800 : #f05900;
     in-out property <color> active_color: Palette.color-scheme == ColorScheme.dark //
         ? #ffa300 : #ffa942;
-    in-out property <color> edge_color: Palette.color-scheme == ColorScheme.dark //
+    in-out property <color> edge_color_child_side: Palette.color-scheme == ColorScheme.dark //
         ? #525281 : #b0abd1;
+    in-out property <color> edge_color_parent_side: Palette.color-scheme == ColorScheme.dark //
+        ? #5050E4 : #69639D;
     in-out property <color> temporary_edge_color: Palette.color-scheme == ColorScheme.dark //
         ? #7b88ac : #645c75;
     in-out property <brush> workbench_background_color: Palette.color-scheme == ColorScheme.dark //

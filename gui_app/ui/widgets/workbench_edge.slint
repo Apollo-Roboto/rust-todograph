@@ -1,3 +1,49 @@
+// I would like to use this instead of the other Edge, but I am facing a rendering issue where the edges disapear when out of sight
+// maybe this will be patched someday
+// discussion on github: https://github.com/slint-ui/slint/discussions/9974
+export component ExperimentalEdge inherits Rectangle {
+    in property <length> stroke_width: 1px;
+    in property <brush> stroke: red;
+    in property <length> from_x;
+    in property <length> from_y;
+    in property <length> to_x;
+    in property <length> to_y;
+    out property <angle> angle: Math.atan2((to_x - from_x) / 1px, (from_y - to_y) / 1px);
+    property <bool> use_path_or_rectangle: false;
+
+    if root.use_path_or_rectangle:
+    Rectangle {
+        x: from_x + root.width / 2;
+        y: from_y + root.width / 2 - (stroke_width / 2);
+        transform-origin: { x: 0, y: stroke_width / 2 };
+        transform-rotation: root.angle - 90deg;
+        width: Math.sqrt(Math.pow((to_x - from_x) / 1px, 2) + Math.pow((to_y - from_y) / 1px, 2)) * 1px;
+        height: stroke_width;
+        background: stroke;
+    }
+
+    if !root.use_path_or_rectangle:
+    Path {
+        transform-origin: { x: root.stroke_width / 2, y: root.stroke_width / 2 };
+        transform-rotation: root.angle - 90deg;
+        x: from_x - root.stroke_width / 2 + root.width / 2;
+        y: from_y - root.stroke_width / 2 + root.width / 2;
+        width: Math.sqrt(Math.pow((to_x - from_x) / 1px, 2) + Math.pow((to_y - from_y) / 1px, 2)) * 1px + root.stroke_width;
+        height: stroke_width;
+        stroke: root.stroke;
+        stroke-width: root.stroke_width;
+        MoveTo {
+            x: 0;
+            y: 0;
+        }
+
+        LineTo {
+            x: parent.width / 1px;
+            y: 0;
+        }
+    }
+}
+
 export component Edge inherits Rectangle {
     in property <length> stroke_width: 1px;
     in property <brush> stroke: red;
@@ -28,4 +74,10 @@ export component Edge inherits Rectangle {
             y: (to_y + (p.height / 2)) / 1px;
         }
     }
+}
+
+export component GradientEdge inherits Edge {
+    in property <color> from_color: red;
+    in property <color> to_color: blue;
+    stroke: @linear-gradient(90deg, from_color 20%, to_color 80%);
 }
