@@ -507,6 +507,7 @@ export component AppWindow inherits Window {
                 background_detail_color: Styles.workbench_background_details_color;
                 selection_rectangle_border: Styles.selection_rectangle_border;
                 selection_rectangle_fill: Styles.selection_rectangle_fill;
+                zoom_enabled: false; // currently buggy as heck
                 workbench_clicked => {
                     root.focus();
                     root.clear_selection();
@@ -717,6 +718,7 @@ export component AppWindow inherits Window {
                 workbench_mouse_pos_y: workbench.mouse_pos_y;
                 workbench_view_pos_x: workbench.view_pos_x;
                 workbench_view_pos_y: workbench.view_pos_y;
+                workbench_zoom: workbench.zoom;
             }
         }
 

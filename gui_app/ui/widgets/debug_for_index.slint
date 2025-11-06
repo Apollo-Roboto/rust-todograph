@@ -21,6 +21,7 @@ export component DebugForIndex inherits VerticalBox {
     in property <length> workbench_mouse_pos_y;
     in property <length> workbench_view_pos_x;
     in property <length> workbench_view_pos_y;
+    in property <float> workbench_zoom;
 
     alignment: start;
     private property <string> font: "Consolas";
@@ -56,7 +57,7 @@ export component DebugForIndex inherits VerticalBox {
 
     Text {
         font-family: parent.font;
-        text: "View Position: (" + Math.round(root.workbench_view_pos_x / 1px) + "," + Math.round(root.workbench_view_pos_y / 1px) + ")";
+        text: "View Pan Zoom: (" + Math.round(root.workbench_view_pos_x / 1px) + "," + Math.round(root.workbench_view_pos_y / 1px) + ") " + Math.round(workbench_zoom * 100) + "%";
     }
 
     Text {

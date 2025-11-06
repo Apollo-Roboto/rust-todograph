@@ -130,6 +130,11 @@ export component WorkBench inherits Rectangle {
     out property <length> view_pos_x;
     // View position y from the center of the viewport
     out property <length> view_pos_y;
+    out property <float> zoom: 1;
+    /// freaks out if less than 0.50
+    in property <float> min_zoom: 0.55;
+    in property <float> max_zoom: 2.50;
+    in property <bool> zoom_enabled: true;
     /// Mouse position x relative from the center of the workbench
     out property <length> mouse_pos_x: ta_above.mouse-x - root.center_x;
     /// Mouse position y relative from the center of the workbench
@@ -162,6 +167,8 @@ export component WorkBench inherits Rectangle {
 
     // movable rectangle containing the childrens
     work_area := Rectangle {
+        transform-scale: root.zoom;
+        transform-origin: { x: root.view_pos_x + center_x, y: root.view_pos_y + center_y };
         width: root.work_area_width;
         height: root.work_area_height;
         Image {
@@ -185,6 +192,22 @@ export component WorkBench inherits Rectangle {
             ta_behind := TouchArea {
                 // this TouchArea handles all events behind the childrens, aka all actions on the workbench
                 mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
+                scroll-event(event) => {
+                    // I always get 60 pixel of delta-y on my computer
+                    if zoom_enabled {
+                        let delta = event.delta-y / 1px;
+                        root.zoom = root.zoom * Math.exp(0.0015 * delta);
+                        if root.zoom > root.max_zoom {
+                            root.zoom = root.max_zoom;
+                        }
+                        if root.zoom < root.min_zoom {
+                            root.zoom = root.min_zoom;
+                        }
+                        return EventResult.accept;
+                    }
+                    return EventResult.reject;
+                }
+
                 double-clicked => {
                     if root.is_panning {
                         return;
