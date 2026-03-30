@@ -29,7 +29,7 @@ impl TaskGraph {
 
     /// Set the parent of a task
     /// Returns the previous parent
-    pub fn set_parent(&mut self, task_id: u32, parent_id: u32) -> Option<u32> {
+    pub fn set_task_parent(&mut self, task_id: u32, parent_id: u32) -> Option<u32> {
         // todo check relationships
         // - no loops
         // - if parent doesn't exists, set parent to None
@@ -48,7 +48,7 @@ impl TaskGraph {
 
     /// Removes link to parent
     /// Returns the previous parent id
-    pub fn unlink_parent(&mut self, task_id: u32) -> Option<u32> {
+    pub fn remove_task_parent(&mut self, task_id: u32) -> Option<u32> {
         let mut parent_id = None;
 
         if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
@@ -71,9 +71,19 @@ impl TaskGraph {
 
     /// Removes a task
     pub fn delete_task(&mut self, task_id: u32) {
-        if let Some(task) = self.tasks.iter().position(|t| t.id == task_id) {
-            self.tasks.remove(task);
-        }
+        let Some(task_index) = self.tasks.iter().position(|t| t.id == task_id) else {
+            return;
+        };
+
+        // remove this id from tasks that depended on it
+        self.tasks
+            .iter_mut()
+            .filter(|t| t.depends_on.contains(&task_id))
+            .for_each(|t| {
+                t.depends_on.remove(&task_id);
+            });
+
+        self.tasks.remove(task_index);
     }
 
     /// Set the task to doing
@@ -91,6 +101,50 @@ impl TaskGraph {
         } else {
             state
         }
+    }
+
+    pub fn add_task_dependency(&mut self, task_id: u32, depends_on: u32) -> Result<(), ()> {
+        // TODO: properly check that there is no loop, beyond parent/child check
+
+        if task_id == depends_on {
+            return Err(());
+        }
+
+        let Some(dependency_task) = self.tasks.iter().find(|t| t.id == depends_on) else {
+            return Err(());
+        };
+
+        // check if dependency is a child, cannot have child task as dependency
+        if dependency_task.parent.is_some_and(|id| id == task_id) {
+            return Err(());
+        }
+
+        let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) else {
+            return Err(());
+        };
+
+        // check if dependency is a parent, cannot have parent task as dependency
+        if task.parent.is_some_and(|id| id == depends_on) {
+            return Err(());
+        }
+
+        task.depends_on.insert(depends_on);
+
+        Ok(())
+    }
+
+    pub fn remove_task_dependency(&mut self, task_id: u32, depends_on: u32) {
+        let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) else {
+            return;
+        };
+        task.depends_on.remove(&depends_on);
+    }
+
+    pub fn remove_all_task_dependencies(&mut self, task_id: u32) {
+        let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) else {
+            return;
+        };
+        task.depends_on = HashSet::new();
     }
 
     pub fn iter_children_of_task(&self, parent_id: u32) -> impl Iterator<Item = &MindTask> {
@@ -150,7 +204,7 @@ impl TaskGraph {
         Some(sum_percent / num_root as f32)
     }
 
-    pub fn get_all_edges(&self) -> Vec<(Point, Point)> {
+    pub fn get_all_parent_edges(&self) -> Vec<(Point, Point)> {
         let mut edges = Vec::new();
         for task in &self.tasks {
             let Some(parent_id) = task.parent else {
@@ -163,6 +217,25 @@ impl TaskGraph {
                 Point::new(task.pos.x, task.pos.y),
                 Point::new(parent.pos.x, parent.pos.y),
             ));
+        }
+
+        edges
+    }
+
+    pub fn get_all_dependency_edges(&self) -> Vec<(Point, Point)> {
+        let mut edges = Vec::new();
+        for task in &self.tasks {
+            for dependency_id in task.depends_on.iter() {
+                let Some(dependency_task) = self.tasks.iter().find(|t| t.id == *dependency_id)
+                else {
+                    continue;
+                };
+
+                edges.push((
+                    Point::new(task.pos.x, task.pos.y),
+                    Point::new(dependency_task.pos.x, dependency_task.pos.y),
+                ));
+            }
         }
 
         edges
@@ -182,6 +255,22 @@ impl TaskGraph {
         let mut count = 0;
         todo!();
         count
+    }
+
+    /// a task is blocked if any of its dependency is not done
+    pub fn is_task_blocked(&self, id: u32) -> Option<bool> {
+        let Some(task) = self.tasks.iter().find(|t| t.id == id) else {
+            return None;
+        };
+        for dependency_id in task.depends_on.iter() {
+            if let Some(dependency) = self.tasks.iter().find(|t| t.id == *dependency_id) {
+                if dependency.state != MindTaskState::Done {
+                    return Some(true);
+                }
+            }
+        }
+
+        Some(false)
     }
 }
 
@@ -207,6 +296,39 @@ mod test {
     use std::path::PathBuf;
 
     use super::*;
+
+    #[test]
+    fn test_is_task_blocked() {
+        let graph = TaskGraph::from(vec![
+            MindTask {
+                id: 0,
+                state: MindTaskState::Todo,
+                ..Default::default()
+            },
+            MindTask {
+                id: 1,
+                state: MindTaskState::Done,
+                ..Default::default()
+            },
+            MindTask {
+                id: 2,
+                state: MindTaskState::Todo,
+                depends_on: HashSet::from_iter(vec![0, 1]),
+                ..Default::default()
+            },
+            MindTask {
+                id: 3,
+                state: MindTaskState::Todo,
+                depends_on: HashSet::from_iter(vec![1]),
+                ..Default::default()
+            },
+        ]);
+
+        assert_eq!(graph.is_task_blocked(0), Some(false));
+        assert_eq!(graph.is_task_blocked(1), Some(false));
+        assert_eq!(graph.is_task_blocked(2), Some(true));
+        assert_eq!(graph.is_task_blocked(3), Some(false));
+    }
 
     #[test]
     fn test_calc_progress_simple() {

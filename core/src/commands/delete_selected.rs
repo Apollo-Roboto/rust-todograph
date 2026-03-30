@@ -9,6 +9,8 @@ use crate::editor::EditorState;
 pub struct DeleteSelectedCommand {
     deleted_items: Option<Vec<MindTask>>,
     previously_active_task: Option<Option<u32>>,
+    // Some dependencies will be broken outside of the selection
+    dependencies: Option<Vec<(u32, u32)>>,
 }
 impl DeleteSelectedCommand {
     pub fn new() -> Self {
@@ -29,6 +31,20 @@ impl Command for DeleteSelectedCommand {
             .filter(|t| t.selected == true)
             .cloned()
             .collect();
+
+        // find all the dependencies
+        let mut dependencies = Vec::new();
+        for item in &items_to_delete {
+            dependencies.append(
+                &mut editor
+                    .graph
+                    .tasks
+                    .iter()
+                    .filter_map(|t| t.depends_on.contains(&item.id).then(|| (t.id, item.id)))
+                    .collect(),
+            );
+        }
+        self.dependencies = Some(dependencies);
 
         for item in &items_to_delete {
             if Some(item.id) == editor.active_task {
@@ -52,12 +68,23 @@ impl Command for DeleteSelectedCommand {
         if let Some(task) = self.previously_active_task {
             editor.active_task = task;
         }
+
+        if let Some(dependencies) = &self.dependencies {
+            dependencies.iter().for_each(|(task_id, depends_on_id)| {
+                editor
+                    .graph
+                    .add_task_dependency(*task_id, *depends_on_id)
+                    .unwrap()
+            });
+        }
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -65,17 +92,18 @@ mod test {
         let mut state = EditorState::default();
 
         let id1 = state.graph.generate_id();
+        let id2 = state.graph.generate_id();
+        let id3 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id1,
+            depends_on: HashSet::from_iter(vec![id2]),
             ..Default::default()
         });
-        let id2 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id2,
             selected: true,
             ..Default::default()
         });
-        let id3 = state.graph.generate_id();
         state.graph.tasks.push(crate::MindTask {
             id: id3,
             selected: true,
@@ -89,22 +117,33 @@ mod test {
         let state_before_execute = state.clone();
 
         cmd.execute(&mut state).unwrap();
-        assert_ne!(
-            state_before_execute, state,
+        pretty_assertions::assert_ne!(
+            state_before_execute,
+            state,
             "The state was supposed to change"
         );
 
         assert_eq!(state.active_task, None);
         assert_eq!(state.graph.tasks.len(), 1);
+        assert!(
+            state
+                .graph
+                .tasks
+                .iter()
+                .find(|t| t.id == id1)
+                .is_some_and(|t| t.depends_on.is_empty())
+        );
 
         cmd.undo(&mut state).unwrap();
-        assert_eq!(
-            state_before_execute, state,
+        pretty_assertions::assert_eq!(
+            state_before_execute,
+            state,
             "The state was supposed to be identical to before"
         );
         cmd.execute(&mut state).unwrap();
-        assert_ne!(
-            state_before_execute, state,
+        pretty_assertions::assert_ne!(
+            state_before_execute,
+            state,
             "The state was supposed to change"
         );
     }

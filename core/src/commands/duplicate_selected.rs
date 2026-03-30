@@ -9,7 +9,7 @@ use crate::editor::EditorState;
 
 #[derive(Debug, Clone)]
 pub struct DuplicateSelectedCommand {
-    items_to_duplicate: Option<Vec<MindTask>>,
+    duplicated_items: Option<Vec<MindTask>>,
     previously_active: Option<Option<u32>>,
     original_selection: Option<HashSet<u32>>,
     creation_time: Option<DateTime<Utc>>,
@@ -17,7 +17,7 @@ pub struct DuplicateSelectedCommand {
 impl DuplicateSelectedCommand {
     pub fn new() -> Self {
         Self {
-            items_to_duplicate: None,
+            duplicated_items: None,
             previously_active: None,
             original_selection: None,
             creation_time: None,
@@ -31,7 +31,7 @@ impl Display for DuplicateSelectedCommand {
 }
 impl Command for DuplicateSelectedCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        if self.items_to_duplicate.is_none() {
+        if self.duplicated_items.is_none() {
             let mut items_to_duplicate: Vec<&mut MindTask> = editor
                 .graph
                 .tasks
@@ -58,6 +58,7 @@ impl Command for DuplicateSelectedCommand {
                 .map(|t| (*t).clone())
                 .collect();
 
+            // reuse existing time for redo
             let now = match self.creation_time {
                 Some(time) => time,
                 None => {
@@ -92,16 +93,30 @@ impl Command for DuplicateSelectedCommand {
                 }
             }
 
+            // update the dependencies to the new ids, depdendencies could be outside of the selection
+            for item in &mut cloned_items {
+                item.depends_on = item
+                    .depends_on
+                    .iter()
+                    .map(|&old_dep_id| {
+                        old_new_id_mapping
+                            .get(&old_dep_id)
+                            .copied()
+                            .unwrap_or(old_dep_id)
+                    })
+                    .collect();
+            }
+
             if let Some(active_index) = active_task_index
                 && let Some(new_active_task) = cloned_items.get(active_index)
             {
                 editor.active_task = Some(new_active_task.id);
             }
 
-            self.items_to_duplicate = Some(cloned_items);
+            self.duplicated_items = Some(cloned_items);
         }
 
-        if let Some(items_to_duplicate) = self.items_to_duplicate.as_ref() {
+        if let Some(items_to_duplicate) = self.duplicated_items.as_ref() {
             for item in items_to_duplicate {
                 editor.graph.create_task(item.clone());
             }
@@ -111,7 +126,7 @@ impl Command for DuplicateSelectedCommand {
     }
 
     fn undo(&mut self, editor: &mut EditorState) -> Result<(), String> {
-        if let Some(items) = self.items_to_duplicate.as_ref() {
+        if let Some(items) = self.duplicated_items.as_ref() {
             for item in items {
                 editor.graph.delete_task(item.id);
             }
@@ -166,6 +181,7 @@ mod test {
             title: String::from("find me id3"),
             parent: Some(id1),
             selected: true,
+            depends_on: HashSet::from_iter(vec![id1, id2]),
             ..Default::default()
         });
         state.graph.tasks.push(crate::MindTask {
@@ -208,6 +224,18 @@ mod test {
         let duplicate_of_id3 = get_duplicated_item(&state, "find me id3", id3);
         let duplicate_of_id4 = get_duplicated_item(&state, "find me id4", id4);
 
+        // utility function for comparing results
+        fn sorted_vec(vec: Vec<u32>) -> Vec<u32> {
+            let mut v: Vec<u32> = vec.iter().copied().collect();
+            v.sort();
+            v
+        }
+        fn sorted_hashset(set: &HashSet<u32>) -> Vec<u32> {
+            let mut v: Vec<u32> = set.iter().copied().collect();
+            v.sort();
+            v
+        }
+
         let mut expectation: Vec<(&str, Value)> = Vec::new();
         expectation.push(("duplicate_of_id1_parent", Value::Null));
         expectation.push(("duplicate_of_id2_parent", json!(Some(duplicate_of_id1.id))));
@@ -217,10 +245,12 @@ mod test {
         expectation.push(("duplicate_of_id2_selected", json!(true)));
         expectation.push(("duplicate_of_id3_selected", json!(true)));
         expectation.push(("duplicate_of_id4_selected", json!(true)));
+        expectation.push(("duplicate_of_id3_depends_on", json!(sorted_vec(vec![duplicate_of_id1.id, duplicate_of_id2.id]))));
         expectation.push(("original_id1_selected", json!(false)));
         expectation.push(("original_id2_selected", json!(false)));
         expectation.push(("original_id3_selected", json!(false)));
         expectation.push(("original_id4_selected", json!(false)));
+        expectation.push(("original_id3_depends_on", json!(sorted_vec(vec![id1, id2]))));
         expectation.push(("selection_count", json!(4)));
         expectation.push(("active_task", json!(Some(duplicate_of_id2.id))));
 
@@ -233,10 +263,12 @@ mod test {
         result.push(("duplicate_of_id2_selected", json!(duplicate_of_id2.selected)));
         result.push(("duplicate_of_id3_selected", json!(duplicate_of_id3.selected)));
         result.push(("duplicate_of_id4_selected", json!(duplicate_of_id4.selected)));
+        result.push(("duplicate_of_id3_depends_on", json!(sorted_hashset(&duplicate_of_id3.depends_on))));
         result.push(("original_id1_selected", json!(original_id1.selected)));
         result.push(("original_id2_selected", json!(original_id2.selected)));
         result.push(("original_id3_selected", json!(original_id3.selected)));
         result.push(("original_id4_selected", json!(original_id4.selected)));
+        result.push(("original_id3_depends_on", json!(sorted_hashset(&original_id3.depends_on))));
         result.push(("selection_count", json!(state.graph.tasks.iter().filter(|t| t.selected).count())));
         result.push(("active_task", json!(state.active_task)));
 

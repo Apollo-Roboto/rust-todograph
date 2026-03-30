@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -148,6 +148,9 @@ pub struct MindTask {
     /// Linked parent task if any, parent should contain this task's id as children
     #[serde(default)]
     pub parent: Option<u32>,
+    /// Linked dependencies, the task is blocked if any of the dependencies are not completed
+    #[serde(default)]
+    pub depends_on: HashSet<u32>,
 }
 
 impl MindTask {

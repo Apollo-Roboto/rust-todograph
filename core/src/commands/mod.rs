@@ -14,6 +14,7 @@ macro_rules! import_commands {
 
 import_commands! {
     add_all_to_selection::AddAllToSelectionCommand,
+    add_task_dependency::AddTaskDependencyCommand,
     add_to_selection::AddToSelectionCommand,
     clear_active::ClearActiveCommand,
     clear_selection::ClearSelectionCommand,
@@ -22,7 +23,9 @@ import_commands! {
     delete_task::DeleteTaskCommand,
     duplicate_selected::DuplicateSelectedCommand,
     move_selected_position::MoveSelectedPositionCommand,
+    remove_all_task_dependency::RemoveAllTaskDependencyCommand,
     remove_from_selection::RemoveFromSelectionCommand,
+    remove_task_dependency::RemoveTaskDependencyCommand,
     set_active::SetActiveCommand,
     set_selection::SetSelectionCommand,
     set_task_notes::SetTaskNotesCommand,

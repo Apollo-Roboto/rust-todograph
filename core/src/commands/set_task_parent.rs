@@ -34,10 +34,11 @@ impl Command for SetTaskParentCommand {
     fn execute(&mut self, editor: &mut EditorState) -> Result<(), String> {
         match self.parent_id {
             Some(parent_id) => {
-                self.previous_parent_id = Some(editor.graph.set_parent(self.task_id, parent_id));
+                self.previous_parent_id =
+                    Some(editor.graph.set_task_parent(self.task_id, parent_id));
             }
             None => {
-                self.previous_parent_id = Some(editor.graph.unlink_parent(self.task_id));
+                self.previous_parent_id = Some(editor.graph.remove_task_parent(self.task_id));
             }
         }
         Ok(())

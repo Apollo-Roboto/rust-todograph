@@ -1,11 +1,13 @@
 {
   "file_types": {
-    "JSON": ["*.fwork"]
+    "JSON": [
+      "*.fwork"
+    ]
   },
   "lsp": {
     "slint": {
       "binary": {
-        "path": "C:\\Users\\Apollo\\AppData\\Local\\Zed\\extensions\\work\\slint\\slint-lsp-v1.13.1\\slint-lsp.exe",
+        "path": "C:\\Users\\Apollo\\AppData\\Local\\Zed\\extensions\\work\\slint\\slint-lsp-v1.14.1\\slint-lsp.exe",
         "arguments": [],
         "env": {}
       }

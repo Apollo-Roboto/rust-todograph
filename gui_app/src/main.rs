@@ -61,13 +61,27 @@ fn editor_task_to_ui_task(task_id: u32, editor: &Editor) -> Result<ui::MindTask,
         .position(|t| Some(t.id) == task.parent)
         .map_or(-1, |id| id as i32);
 
+    let depends_on_indexes = editor
+        .state
+        .graph
+        .tasks
+        .iter()
+        .enumerate()
+        .filter(|(i, t)| task.depends_on.contains(&t.id))
+        .map(|(i, _t)| i as i32);
+
+    let depends_on_indexes =
+        std::rc::Rc::new(slint::VecModel::from_iter(depends_on_indexes)).into();
+
     Ok(ui::MindTask {
         childrens,
         completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
         id: task.id as i32,
         selected: task.selected,
+        blocked: editor.state.graph.is_task_blocked(task.id).unwrap_or(false),
         parent_id: task.parent.map_or(-1, |id| id as i32),
         parent_index,
+        depends_on_indexes,
         state: task.state.into(),
         title: task.title.clone().into(),
         notes: task.notes.clone().into(),
@@ -99,11 +113,25 @@ fn all_editor_task_to_ui_task(editor: &Editor) -> Vec<ui::MindTask> {
                 .position(|t| Some(t.id) == task.parent)
                 .map_or(-1, |id| id as i32);
 
+            let depends_on_indexes = editor
+                .state
+                .graph
+                .tasks
+                .iter()
+                .enumerate()
+                .filter(|(i, t)| task.depends_on.contains(&t.id))
+                .map(|(i, _t)| i as i32);
+
+            let depends_on_indexes =
+                std::rc::Rc::new(slint::VecModel::from_iter(depends_on_indexes)).into();
+
             ui::MindTask {
                 childrens,
                 completion: editor.state.graph.calc_progress(task.id).unwrap_or(0.0),
                 id: task.id as i32,
                 selected: task.selected,
+                blocked: editor.state.graph.is_task_blocked(task.id).unwrap_or(false),
+                depends_on_indexes,
                 parent_id: task.parent.map_or(-1, |id| id as i32),
                 parent_index,
                 state: task.state.into(),
@@ -392,6 +420,63 @@ fn main() {
         };
         let mut editor = editor_clone.lock().unwrap();
         let cmd = Box::new(commands::MoveSelectedPositionCommand::new(Point { x, y }));
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_add_dependency_to_task(move |task_id, depends_on_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let (Ok(task_id), Ok(depends_on_id)) = (task_id.try_into(), depends_on_id.try_into())
+        else {
+            return;
+        };
+        let mut editor = editor_clone.lock().unwrap();
+        let cmd = Box::new(commands::AddTaskDependencyCommand::new(
+            task_id,
+            depends_on_id,
+        ));
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_remove_dependency_from_task(move |task_id, depends_on_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let (Ok(task_id), Ok(depends_on_id)) = (task_id.try_into(), depends_on_id.try_into())
+        else {
+            return;
+        };
+        let mut editor = editor_clone.lock().unwrap();
+        let cmd = Box::new(commands::RemoveTaskDependencyCommand::new(
+            task_id,
+            depends_on_id,
+        ));
+        editor.execute(cmd).unwrap();
+        std::mem::drop(editor);
+        main_window.invoke_refresh_tasks();
+    });
+
+    let main_window_weak = main_window.as_weak();
+    let editor_clone = editor.clone();
+    main_window.on_remove_all_dependencies_from_task(move |task_id| {
+        let Some(main_window) = main_window_weak.upgrade() else {
+            return;
+        };
+        let Ok(task_id) = task_id.try_into() else {
+            return;
+        };
+
+        let mut editor = editor_clone.lock().unwrap();
+        let cmd = Box::new(commands::RemoveAllTaskDependencyCommand::new(task_id));
         editor.execute(cmd).unwrap();
         std::mem::drop(editor);
         main_window.invoke_refresh_tasks();
