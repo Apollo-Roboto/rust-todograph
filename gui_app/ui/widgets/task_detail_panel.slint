@@ -1,4 +1,12 @@
-import { VerticalBox, HorizontalBox, LineEdit, Button, TextEdit, ComboBox, Palette } from "std-widgets.slint";
+import {
+    VerticalBox,
+    HorizontalBox,
+    LineEdit,
+    Button,
+    TextEdit,
+    ComboBox,
+    Palette,
+} from "std-widgets.slint";
 import { MindTask, MindTaskState } from "../models.slint";
 import { Styles } from "../global.slint";
 
@@ -268,12 +276,12 @@ export component TaskDetailPanel inherits Rectangle {
     border-color: black;
     border-width: 1px;
     border-radius: 6px;
-
+    private property <string> font: "Consolas";
     if !root.show:
     VerticalBox {
         alignment: center;
         Text {
-            font-family: "Consolas";
+            font-family: root.font;
             horizontal-alignment: center;
             text: "Select a task";
         }
@@ -282,22 +290,22 @@ export component TaskDetailPanel inherits Rectangle {
     VerticalBox {
         alignment: stretch;
         Text {
-            font-family: "Consolas";
+            font-family: root.font;
             text: "Id: #" + task.id;
         }
 
         HorizontalBox {
             padding: 0;
             Text {
-                font-family: "Consolas";
+                font-family: root.font;
                 vertical-alignment: center;
                 text: "Title: ";
             }
 
             PriorityFocusLineEdit {
                 text: task.title;
-                changed(text) => {
-                    root.title_changed(text);
+                changed text => {
+                    root.title_changed(self.text);
                 }
                 submitted(text) => {
                     root.lock_released();
@@ -341,7 +349,7 @@ export component TaskDetailPanel inherits Rectangle {
         }
 
         Text {
-            font-family: "Consolas";
+            font-family: root.font;
             text: "Notes:";
         }
 
@@ -361,12 +369,12 @@ export component TaskDetailPanel inherits Rectangle {
         }
 
         // Text {
-        //     font-family: "Consolas";
+        //     font-family: root.font;
         //     text: "Created: " + root.task.creation_date;
         // }
 
         // Text {
-        //     font-family: "Consolas";
+        //     font-family: root.font;
         //     text: root.task.has_completion_date //
         //         ? "Completed: None" //
         //         : "Completed: " + root.task.completion_date;
@@ -374,24 +382,32 @@ export component TaskDetailPanel inherits Rectangle {
 
         Text {
             // TODO: would be cool to click so you can navigate to the parent
-            font-family: "Consolas";
+            font-family: root.font;
             text: root.task.parent_id == -1 //
                 ? "Parent: None" //
                 : "Parent: #" + root.task.parent_id;
         }
 
         Text {
-            font-family: "Consolas";
+            font-family: root.font;
             text: "Num of childrens: " + root.task.childrens.length;
         }
 
+        if task.depends-on-indexes.length <= 1:
         Text {
-            font-family: "Consolas";
+            text: "Depends on " + task.depends-on-indexes.length + " task";
+        }
+        if task.depends-on-indexes.length > 1:
+        Text {
+            text: "Depends on " + task.depends-on-indexes.length + " tasks";
+        }
+        Text {
+            font-family: root.font;
             text: "Position: (" + root.task.x / 1px + ", " + root.task.y / 1px + ")";
         }
 
         Text {
-            font-family: "Consolas";
+            font-family: root.font;
             text: "Completion: " + Math.round(root.task.completion * 100) + "%";
         }
 

@@ -2,30 +2,38 @@ import { MindTaskState } from "models.slint";
 import { Palette } from "std-widgets.slint";
 
 export global Styles {
+    private property <color> red: Palette.color-scheme == ColorScheme.dark //
+        ? #ac372f : #d85147;
+    private property <color> green: Palette.color-scheme == ColorScheme.dark //
+        ? #186638 : #46b96c;
+    private property <color> blue: Palette.color-scheme == ColorScheme.dark //
+        ? #2b599c : #4e80ca;
+    private property <color> orange: Palette.color-scheme == ColorScheme.dark //
+        ? #ed5800 : #f05900;
+    private property <color> yellow: Palette.color-scheme == ColorScheme.dark //
+        ? #ffa300 : #ffa942;
     in-out property <color> hyperlink: Palette.color-scheme == ColorScheme.dark //
         ? #8686fa : #0808fa;
     in-out property <color> todo_color: Palette.color-scheme == ColorScheme.dark //
-        ? #333333 : #b8b8b8;
-    in-out property <color> doing_color: Palette.color-scheme == ColorScheme.dark //
-        ? #2b599c : #7199d4;
-    in-out property <color> done_color: Palette.color-scheme == ColorScheme.dark //
-        ? #186638 : #5ab478;
-    in-out property <color> danger_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ac372f : #d85147;
+        ? #333333 : #b3b3b3;
+    in-out property <color> doing_color: blue;
+    in-out property <color> done_color: green;
+    in-out property <color> blocked_color: Palette.color-scheme == ColorScheme.dark //
+        ? #5c2423 : #e8847d;
+    in-out property <color> danger_color: red;
     in-out property <color> selection_rectangle_border: Palette.color-scheme == ColorScheme.dark //
         ? #cccccc : #555555;
     in-out property <color> selection_rectangle_fill: Palette.color-scheme == ColorScheme.dark //
         ? #ffffff08 : #00000010;
-    in-out property <color> selected_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ed5800 : #f05900;
-    in-out property <color> active_color: Palette.color-scheme == ColorScheme.dark //
-        ? #ffa300 : #ffa942;
-    in-out property <color> edge_color_child_side: Palette.color-scheme == ColorScheme.dark //
+    in-out property <color> selected_color: orange;
+    in-out property <color> active_color: yellow;
+    in-out property <color> dependency_edge_color: Palette.color-scheme == ColorScheme.dark //
+        ? #4d1924 : #f2a6a6;
+    in-out property <color> parenting_edge_color_child_side: Palette.color-scheme == ColorScheme.dark //
         ? #525281 : #b0abd1;
-    in-out property <color> edge_color_parent_side: Palette.color-scheme == ColorScheme.dark //
+    in-out property <color> parenting_edge_color_parent_side: Palette.color-scheme == ColorScheme.dark //
         ? #5050E4 : #69639D;
-    in-out property <color> temporary_edge_color: Palette.color-scheme == ColorScheme.dark //
-        ? #7b88ac : #645c75;
+    in-out property <color> temporary_edge_color: active_color;
     in-out property <brush> workbench_background_color: Palette.color-scheme == ColorScheme.dark //
         ? #00000000 : #00000000;
     in-out property <brush> workbench_background_details_color: Palette.color-scheme == ColorScheme.dark //

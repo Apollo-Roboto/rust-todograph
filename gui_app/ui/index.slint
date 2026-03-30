@@ -8,11 +8,10 @@ import {
     CheckBox,
     Switch,
 } from "std-widgets.slint";
-import { WorkBench, DragableRectangle } from "widgets/workbench.slint";
+import { WorkBench } from "widgets/workbench.slint";
 import { SelectionBoxKind } from "widgets/selection_rectangle.slint";
 import { Styles, Func } from "global.slint";
 import { AppMode, MindTask, MindTaskState } from "models.slint";
-import { Bubble } from "widgets/bubble.slint";
 import { Edge } from "widgets/workbench_edge.slint";
 import { TaskDetailPanel } from "widgets/task_detail_panel.slint";
 import { MiddleProgressBar } from "widgets/middle_progress_bar.slint";
@@ -26,6 +25,7 @@ import {
 import { AboutWindowContent } from "about.slint";
 import { SelectionRectangle } from "widgets/selection_rectangle.slint";
 import { DebugForIndex } from "widgets/debug_for_index.slint";
+import { TaskBubble } from "widgets/task_bubble.slint";
 
 export { HyperlinkGlobal } from "widgets/hyperlink.slint";
 export { Func, FileDialogButtonGlobal }
@@ -35,160 +35,6 @@ enum TaskLoadingState {
 }
 enum TaskSavingState {
     None, Saving, Error,
-}
-
-component TaskBubble {
-    in property <MindTask> task;
-    in property <bool> debug_info: false;
-    in property <brush> default_color: Styles.todo_color;
-    in property <brush> todo_color: Styles.todo_color;
-    in property <brush> doing_color: Styles.doing_color;
-    in property <brush> done_color: Styles.done_color;
-    in property <bool> active: false;
-    out property <bool> has-hover <=> ta.has-hover;
-    callback add_children_clicked();
-    callback delete_clicked();
-    callback left_mouse_down(PointerEvent);
-    callback left_mouse_up(PointerEvent);
-    callback moved_by(x: length, y: length);
-    callback new_children_clicked();
-    callback remove_parent_clicked();
-    callback set_parent_clicked();
-    callback state_change_clicked(state: MindTaskState);
-    ta := TouchArea {
-        pointer-event(event) => {
-            // TODO: I should just pass over the pointer event
-            if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
-                root.left_mouse_down(event);
-                return;
-            }
-            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
-                root.left_mouse_up(event);
-                return;
-            }
-        }
-        ContextMenuArea {
-            Menu {
-                Menu {
-                    title: "Set State";
-                    MenuItem {
-                        title: "To Do";
-                        activated => {
-                            root.state_change_clicked(MindTaskState.Todo);
-                        }
-                    }
-
-                    MenuItem {
-                        title: "Doing";
-                        activated => {
-                            root.state_change_clicked(MindTaskState.Doing);
-                        }
-                    }
-
-                    MenuItem {
-                        title: "Done";
-                        activated => {
-                            root.state_change_clicked(MindTaskState.Done);
-                        }
-                    }
-                }
-
-                MenuSeparator { }
-
-                MenuItem {
-                    title: "Set Parent";
-                    activated => {
-                        root.set_parent_clicked();
-                    }
-                }
-
-                MenuItem {
-                    title: "Remove Parent";
-                    activated => {
-                        root.remove_parent_clicked();
-                    }
-                }
-
-                MenuItem {
-                    title: "Add Child";
-                    activated => {
-                        root.add_children_clicked();
-                    }
-                }
-
-                MenuSeparator { }
-
-                MenuItem {
-                    title: "New Child";
-                    activated => {
-                        root.new_children_clicked();
-                    }
-                }
-
-                MenuSeparator { }
-
-                MenuItem {
-                    title: "Delete";
-                    activated => {
-                        root.delete_clicked();
-                    }
-                }
-            }
-
-            VerticalLayout {
-                bubble := Bubble {
-                    text: task.title;
-                    background: task.state == MindTaskState.Todo ? todo_color //
-                      : task.state == MindTaskState.Doing ? doing_color //
-                      : task.state == MindTaskState.Done ? done_color //
-                      : default_color;
-                    border-color: root.active //
-                                ? Styles.active_color //
-                                : task.selected //
-                                ? Styles.selected_color //
-                                : black;
-                    drop-shadow-offset-x: 5px;
-                    drop-shadow-offset-y: 5px;
-                    animate drop-shadow-color, drop-shadow-blur, drop-shadow-offset-x, drop-shadow-offset-y {
-                        duration: 180ms;
-                        easing: ease-in-out;
-                    }
-                    if task.childrens.length > 0 && task.completion > 0:
-                    HorizontalLayout {
-                        alignment: center;
-                        y: parent.y + parent.height - 5px;
-                        MiddleProgressBar {
-                            progress: task.completion;
-                            height: 10px;
-                            width: parent.width - 50px;
-                        }
-                    }
-                }
-            }
-
-            if debug_info:
-            VerticalBox {
-                y: bubble.y + bubble.height;
-                alignment: start;
-                property <string> font: "Consolas";
-                Text {
-                    font-family: font;
-                    text: "#" + root.task.id + " (" + Math.round(root.task.completion * 100) + "%)";
-                }
-
-                if root.active:
-                    Text {
-                    font-family: font;
-                    text: "Active";
-                }
-                if task.selected:
-                    Text {
-                    font-family: font;
-                    text: "Selected";
-                }
-            }
-        }
-    }
 }
 
 export component AppWindow inherits Window {
@@ -213,6 +59,7 @@ export component AppWindow inherits Window {
     out property <length> dragging_start_pos_x;
     out property <length> dragging_start_pos_y;
     in-out property <bool> show_menu_bar: true;
+    in-out property <bool> show_dependency_edges: false;
     callback quit();
     callback refresh_other();
     callback refresh_tasks();
@@ -224,6 +71,9 @@ export component AppWindow inherits Window {
     callback create_task_with_parent(parent_id: int, title: string, x: length, y: length);
     callback set_parent_to_task(id: int, parent: int);
     callback unset_parent_from_task(id: int);
+    callback add_dependency_to_task(id: int, depends_on: int);
+    callback remove_dependency_from_task(id: int, depends_on: int); // TODO: call this to remove individual dependencies
+    callback remove_all_dependencies_from_task(id: int);
     callback duplicate_selected();
     callback delete_task(id: int);
     callback delete_selected();
@@ -277,11 +127,9 @@ export component AppWindow inherits Window {
         root.current_file_path = "";
         root.open_file_picked("");
     }
-
     preferred-width: 800px;
     preferred-height: 600px;
     forward-focus: window_focus;
-
     if root.show_menu_bar:
     MenuBar {
         Menu {
@@ -402,6 +250,14 @@ export component AppWindow inherits Window {
                     }
                 }
             }
+
+            MenuItem {
+                title: "Toggle dependency edges";
+                checkable: true;
+                activated => {
+                    root.show_dependency_edges = self.checked;
+                }
+            }
         }
 
         Menu {
@@ -420,7 +276,6 @@ export component AppWindow inherits Window {
             }
         }
     }
-
     window_focus := FocusScope {
         key-pressed(event) => {
             if event.text.to-lowercase() == "d" && event.modifiers.shift {
@@ -557,21 +412,33 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                // place every edges
+                // place dependency edges
+                if root.show_dependency_edges: Rectangle {
+                    for task in tasks: Rectangle {
+                        for dependency_index in task.depends_on_indexes: //
+                        Edge {
+                            // x and y adds an offset to the mouse if it is being dragged
+                            stroke: Styles.dependency_edge_color;
+                            stroke_width: 4px;
+                            from_x: task.x + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                            from_y: task.y + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                            to_x: tasks[dependency_index].x + (root.mode == AppMode.DraggingSelected && tasks[dependency_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
+                            to_y: tasks[dependency_index].y + (root.mode == AppMode.DraggingSelected && tasks[dependency_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
+                        }
+                    }
+                }
+
+                // place parenting edges
                 for task in tasks: //
                     Rectangle {
                     if task.parent_index != -1:
                     Edge {
                         // x and y adds an offset to the mouse if it is being dragged
-                        stroke: Styles.edge_color_child_side;
+                        stroke: Styles.parenting_edge_color_child_side;
                         stroke_width: 4px;
-                        // from_x: task.x;
                         from_x: task.x + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
-                        // from_y: task.y;
                         from_y: task.y + (root.mode == AppMode.DraggingSelected && task.selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
-                        // to_x: tasks[task.parent_index].x;
                         to_x: tasks[task.parent_index].x + (root.mode == AppMode.DraggingSelected && tasks[task.parent_index].selected ? workbench.mouse_pos_x - root.dragging_start_pos_x : 0);
-                        // to_y: tasks[task.parent_index].y;
                         to_y: tasks[task.parent_index].y + (root.mode == AppMode.DraggingSelected && tasks[task.parent_index].selected ? workbench.mouse_pos_y - root.dragging_start_pos_y : 0);
                     }
                 }
@@ -579,7 +446,8 @@ export component AppWindow inherits Window {
                 // preview edge for user feedback
                 // will snap to the hovered task if any
                 if root.mode == AppMode.SetParent //
-                || root.mode == AppMode.AddChildren:
+                || root.mode == AppMode.AddChildren //
+                || root.mode == AppMode.AddDependency:
                     Edge {
                     stroke: Styles.temporary_edge_color;
                     stroke_width: 4px;
@@ -593,7 +461,7 @@ export component AppWindow inherits Window {
                             : workbench.mouse_pos_y;
                 }
 
-                // // temp bubble
+                // temp bubble
                 // bubble_a := TaskBubble {
                 //     x: workbench.center_x + self.task.x - self.width / 2;
                 //     y: workbench.center_y + self.task.y - self.height / 2;
@@ -602,10 +470,11 @@ export component AppWindow inherits Window {
                 //     task: {
                 //         id: 55,
                 //         title: "A",
-                //         x: 123px,
-                //         y: 123px,
+                //         x: 250px,
+                //         y: 350px,
                 //         completion: 50%,
                 //         childrens: [1, 2, 3, 4],
+                //         state: MindTaskState.Doing,
                 //     };
                 //     moved_by(x, y) => {
                 //         self.task.x = x + self.task.x;
@@ -649,11 +518,23 @@ export component AppWindow inherits Window {
                         root.set_active_task(task.id, false);
                         root.mode = AppMode.AddChildren;
                     }
+                    add_dependency_clicked => {
+                        root.set_active_task(task.id, false);
+                        root.mode = AppMode.AddDependency;
+                    }
+                    remove_all_dependencies_clicked => {
+                        root.remove_all_dependencies_from_task(task.id);
+                    }
                     new_children_clicked => {
                         root.create_task_with_parent(task.id, "New Task", workbench.mouse_pos_x, workbench.mouse_pos_y);
                     }
                     left_mouse_down(event) => {
                         root.focus();
+                        if root.mode == AppMode.AddDependency {
+                            root.add_dependency_to_task(root.tasks[active_task_index].id, task.id);
+                            root.mode = AppMode.None;
+                            return;
+                        }
                         if root.mode == AppMode.SetParent {
                             root.set_parent_to_task(root.tasks[active_task_index].id, task.id);
                             root.mode = AppMode.None;

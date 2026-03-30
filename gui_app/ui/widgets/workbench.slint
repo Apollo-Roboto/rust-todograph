@@ -1,6 +1,10 @@
-import { SelectionRectangle, SelectionBoxKind } from "selection_rectangle.slint";
+import {
+    SelectionRectangle,
+    SelectionBoxKind,
+} from "selection_rectangle.slint";
 import { Palette, Button } from "std-widgets.slint";
 
+// TODO: this will need to change, I hope to have a component that every item on the board workspace should be
 export component DragableRectangle inherits Rectangle {
     out property <bool> dragged: false;
     out property <bool> has-hover <=> ta.has-hover;
@@ -117,7 +121,6 @@ export component WorkBench inherits Rectangle {
     in property <length> work_area_width: 5000px;
     in property <length> work_area_height: 5000px;
     in property <bool> debug_info: false;
-    in property <bool> show_position: true;
     in property <image> background_detail_image: @image-url("../assets/point_tile_c_150x150.png");
     in property <brush> background_detail_color: #ffffff;
     in property <color> selection_rectangle_border: Palette.accent-background;
@@ -164,6 +167,12 @@ export component WorkBench inherits Rectangle {
     init => {
         root.move_view_to(root.center_x, root.center_y);
     }
+    changed width => {
+        // TODO: update the view position to stay centered
+    }
+    changed height => {
+        // TODO: update the view position to stay centered
+    }
 
     // movable rectangle containing the childrens
     work_area := Rectangle {
@@ -184,11 +193,9 @@ export component WorkBench inherits Rectangle {
         WorkAreaDebugLimit {
             line_color: root.background_detail_color;
         }
-
         ta_above := TouchArea {
             // this TouchArea tracks the mouse position above all childrens
             mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
-
             ta_behind := TouchArea {
                 // this TouchArea handles all events behind the childrens, aka all actions on the workbench
                 mouse-cursor: root.is_panning ? MouseCursor.grabbing : MouseCursor.default;
@@ -207,7 +214,6 @@ export component WorkBench inherits Rectangle {
                     }
                     return EventResult.reject;
                 }
-
                 double-clicked => {
                     if root.is_panning {
                         return;

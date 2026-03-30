@@ -1,5 +1,5 @@
 export enum AppMode {
-    None, SetParent, AddChildren, DraggingSelected
+    None, SetParent, AddChildren, AddDependency, DraggingSelected
 }
 
 export enum MindTaskState {
@@ -20,4 +20,6 @@ export struct MindTask {
     childrens: [int],
     completion: float,
     selected: bool,
+    blocked: bool,
+    depends_on_indexes: [int],
 }

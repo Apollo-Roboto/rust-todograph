@@ -4,7 +4,6 @@
 use log::{debug, info};
 use rust_firework_core::LOGGER;
 use rust_firework_core::commands;
-use rust_firework_core::commands::Command;
 use rust_firework_core::editor::EditorEvent;
 use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
 use slint::Model;

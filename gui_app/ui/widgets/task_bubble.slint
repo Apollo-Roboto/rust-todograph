@@ -1,0 +1,214 @@
+import { MindTask, MindTaskState } from "../models.slint";
+import { MiddleProgressBar } from "./middle_progress_bar.slint";
+import { VerticalBox } from "std-widgets.slint";
+import { Styles } from "../global.slint";
+
+component Bubble inherits Rectangle {
+    in property <string> text <=> _text.text;
+    in property <length> horizontal_padding: 35px;
+    in property <length> vertical_padding: 20px;
+    height: _text.height + vertical_padding;
+    width: _text.width + horizontal_padding;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 16px;
+    _text := Text {
+        horizontal-alignment: center;
+        min-width: 75px;
+    }
+}
+
+component DebugInfoForTask inherits VerticalBox {
+    in property <bool> active: false;
+    in property <bool> selected: false;
+    in property <bool> blocked: false;
+    in property <int> id: -1;
+    in property <float> completion: -1;
+    property <string> font: "Consolas";
+    alignment: start;
+    Text {
+        font-family: font;
+        text: "#" + root.id + " (" + Math.round(root.completion * 100) + "%)";
+    }
+
+    if root.blocked:
+        Text {
+        font-family: font;
+        text: "Blocked";
+    }
+    if root.active:
+        Text {
+        font-family: font;
+        text: "Active";
+    }
+    if root.selected:
+        Text {
+        font-family: font;
+        text: "Selected";
+    }
+}
+
+export component TaskBubble {
+    in property <MindTask> task;
+    in property <bool> debug_info: false;
+    in property <brush> default_color: Styles.todo_color;
+    in property <brush> todo_color: Styles.todo_color;
+    in property <brush> doing_color: Styles.doing_color;
+    in property <brush> done_color: Styles.done_color;
+    in property <brush> blocked_color: Styles.blocked_color;
+    in property <bool> active: false;
+    out property <bool> has-hover <=> ta.has-hover;
+    callback add_children_clicked();
+    callback delete_clicked();
+    callback left_mouse_down(PointerEvent);
+    callback left_mouse_up(PointerEvent);
+    callback moved_by(x: length, y: length);
+    callback new_children_clicked();
+    callback remove_parent_clicked();
+    callback set_parent_clicked();
+    callback state_change_clicked(state: MindTaskState);
+    callback add_dependency_clicked();
+    callback remove_all_dependencies_clicked();
+    ta := TouchArea {
+        pointer-event(event) => {
+            // TODO: I should just pass over the pointer event
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                root.left_mouse_down(event);
+                return;
+            }
+            if event.button == PointerEventButton.left && event.kind == PointerEventKind.up {
+                root.left_mouse_up(event);
+                return;
+            }
+        }
+        ContextMenuArea {
+            Menu {
+                Menu {
+                    title: "Set State";
+                    MenuItem {
+                        title: "To Do";
+                        enabled: task.state != MindTaskState.Todo;
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Todo);
+                        }
+                    }
+
+                    MenuItem {
+                        title: "Doing";
+                        enabled: task.state != MindTaskState.Doing;
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Doing);
+                        }
+                    }
+
+                    MenuItem {
+                        title: "Done";
+                        enabled: task.state != MindTaskState.Done;
+                        activated => {
+                            root.state_change_clicked(MindTaskState.Done);
+                        }
+                    }
+                }
+
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "Set Parent";
+                    activated => {
+                        root.set_parent_clicked();
+                    }
+                }
+
+                MenuItem {
+                    title: "Remove Parent";
+                    enabled: root.task.parent-id != -1;
+                    activated => {
+                        root.remove_parent_clicked();
+                    }
+                }
+
+                MenuItem {
+                    title: "Add Child";
+                    activated => {
+                        root.add_children_clicked();
+                    }
+                }
+
+                MenuItem {
+                    title: "Add Dependency";
+                    activated => {
+                        root.add_dependency_clicked();
+                    }
+                }
+
+                MenuItem {
+                    title: "Remove All Dependencies";
+                    enabled: task.depends-on-indexes.length != 0;
+                    activated => {
+                        root.remove_all_dependencies_clicked();
+                    }
+                }
+
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "New Child";
+                    activated => {
+                        root.new_children_clicked();
+                    }
+                }
+
+                MenuSeparator { }
+
+                MenuItem {
+                    title: "Delete";
+                    activated => {
+                        root.delete_clicked();
+                    }
+                }
+            }
+
+            VerticalLayout {
+                bubble := Bubble {
+                    text: task.title;
+                    background: task.blocked ? blocked_color //
+                      : task.state == MindTaskState.Todo ? todo_color //
+                      : task.state == MindTaskState.Doing ? doing_color //
+                      : task.state == MindTaskState.Done ? done_color //
+                      : default_color;
+                    border-color: root.active //
+                                ? Styles.active_color //
+                                : task.selected //
+                                ? Styles.selected_color //
+                                : black;
+                    drop-shadow-offset-x: 5px;
+                    drop-shadow-offset-y: 5px;
+                    animate drop-shadow-color, drop-shadow-blur, drop-shadow-offset-x, drop-shadow-offset-y {
+                        duration: 180ms;
+                        easing: ease-in-out;
+                    }
+                    if task.childrens.length > 0 && task.completion > 0:
+                    HorizontalLayout {
+                        alignment: center;
+                        y: parent.y + parent.height - 5px;
+                        MiddleProgressBar {
+                            progress: task.completion;
+                            height: 10px;
+                            width: parent.width - 50px;
+                        }
+                    }
+                }
+            }
+
+            if debug_info:
+            DebugInfoForTask {
+                y: bubble.y + bubble.height;
+                active: root.active;
+                completion: root.task.completion;
+                selected: root.task.selected;
+                blocked: root.task.blocked;
+                id: root.task.id;
+            }
+        }
+    }
+}
