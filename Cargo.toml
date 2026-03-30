@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
-members = ["gui_app", "core", "cli_app"]
-# default-members = ["gui_app"]
+members = ["crates/core", "crates/cli_app", "crates/gui_app"]
+# default-members = ["crates/gui_app"]
 
 [workspace.package]
 authors = ["ApolloRoboto"]
