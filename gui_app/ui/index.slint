@@ -102,7 +102,7 @@ export component AppWindow inherits Window {
         root.open_file_picked(path);
     }
     public function open() {
-        let result = FileDialogButtonGlobal.open("Open File", "", [{ text: "FireWork", extensions : ["fwork"] }], "", FileDialogType.load);
+        let result = FileDialogButtonGlobal.open("Open File", "", [{ text: "TodoGraph", extensions : ["todog"] }], "", FileDialogType.load);
         if result.status == FileDialogResultStatus.picked {
             root.current_file_path = result.file;
             root.open_file_picked(result.file);
@@ -117,7 +117,7 @@ export component AppWindow inherits Window {
         root.save_as();
     }
     public function save_as() {
-        let result = FileDialogButtonGlobal.open("Save As", "", [{ text: "FireWork", extensions : ["fwork"] }], root.current_file_path, FileDialogType.save);
+        let result = FileDialogButtonGlobal.open("Save As", "", [{ text: "TodoGraph", extensions : ["todog"] }], root.current_file_path, FileDialogType.save);
         if result.status == FileDialogResultStatus.picked {
             root.current_file_path = result.file;
             root.save_file_picked(result.file);

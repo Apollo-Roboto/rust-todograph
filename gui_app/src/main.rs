@@ -1,16 +1,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(unused)]
 
+use tg_core::LOGGER;
+use tg_core::commands;
+use tg_core::editor::EditorEvent;
+use tg_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
+
 use log::{debug, info};
-use rust_firework_core::LOGGER;
-use rust_firework_core::commands;
-use rust_firework_core::editor::EditorEvent;
-use rust_firework_core::{Editor, MindTask, MindTaskState, Point, TaskGraph};
-use slint::Model;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use slint::ComponentHandle;
+use slint::Model;
 
 mod ui {
     slint::include_modules!();

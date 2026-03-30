@@ -1,12 +1,12 @@
 [package]
-name = "rust-firework-cli-app"
+name = "tg-cli-app"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-
 clap = { version = "4.5.45", features = ["derive"] }
 log = { workspace = true }
-rust-firework-core = { path = "../core" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+
+tg-core = { path = "../core" }

@@ -4,7 +4,7 @@ members = ["gui_app", "core", "cli_app"]
 # default-members = ["gui_app"]
 
 [workspace.package]
-authors = ["Apollo-Roboto"]
+authors = ["ApolloRoboto"]
 version = "0.1.0"
 edition = "2024"
 

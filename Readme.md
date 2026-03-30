@@ -1,4 +1,4 @@
-# Project FireWork
+# Project TodoGraph
 
 An experimental spacial work organization and planning tool.
 

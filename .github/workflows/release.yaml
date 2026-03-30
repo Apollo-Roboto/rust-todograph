@@ -44,17 +44,17 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          export ARCHIVE_NAME="firework-0.1.0-${{ matrix.builds.target }}.zip"
+          export ARCHIVE_NAME="todograph-${{ github.ref_name }}-${{ matrix.builds.target }}.zip"
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
           if [ "${{ matrix.builds.os }}" = "windows-latest" ]; then
-            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app.exe" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app.exe"
-            7z rn $ARCHIVE_NAME rust-firework-gui-app.exe firework.exe
-            7z rn $ARCHIVE_NAME rust-firework-cli-app.exe firework-cli.exe
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/tg-gui-app.exe" "./target/${{ matrix.builds.target }}/release/tg-cli-app.exe"
+            7z rn $ARCHIVE_NAME tg-gui-app.exe todograph.exe
+            7z rn $ARCHIVE_NAME tg-cli-app.exe todograph-cli.exe
           else
-            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/rust-firework-gui-app" "./target/${{ matrix.builds.target }}/release/rust-firework-cli-app" 
-            7z rn $ARCHIVE_NAME rust-firework-gui-app firework
-            7z rn $ARCHIVE_NAME rust-firework-cli-app firework-cli
+            7z a -stl $ARCHIVE_NAME "./target/${{ matrix.builds.target }}/release/tg-gui-app" "./target/${{ matrix.builds.target }}/release/tg-cli-app" 
+            7z rn $ARCHIVE_NAME tg-gui-app todograph
+            7z rn $ARCHIVE_NAME tg-cli-app todograph-cli
           fi
 
           # 7z a $ARCHIVE_NAME "License"

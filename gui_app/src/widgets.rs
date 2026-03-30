@@ -1,10 +1,11 @@
-use std::path::Path;
-
 use crate::ui::{
     FileDialogButtonGlobal, FileDialogResult, FileDialogResultStatus, FileDialogType,
     HyperlinkGlobal,
 };
+
 use log::error;
+use std::path::Path;
+
 use slint::Model;
 
 pub fn setup_hyperlink(widget: HyperlinkGlobal) {

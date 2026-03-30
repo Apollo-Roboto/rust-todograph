@@ -4034,44 +4034,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
-name = "rust-firework-cli-app"
-version = "0.1.0"
-dependencies = [
- "clap",
- "log",
- "rust-firework-core",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rust-firework-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "colored",
- "directories",
- "log",
- "pretty_assertions",
- "serde",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "rust-firework-gui-app"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "log",
- "open",
- "rfd",
- "rust-firework-core",
- "slint",
- "slint-build",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4666,6 +4628,44 @@ name = "text-size"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
+
+[[package]]
+name = "tg-cli-app"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "log",
+ "serde",
+ "serde_json",
+ "tg-core",
+]
+
+[[package]]
+name = "tg-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colored",
+ "directories",
+ "log",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "tg-gui-app"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "log",
+ "open",
+ "rfd",
+ "slint",
+ "slint-build",
+ "tg-core",
+]
 
 [[package]]
 name = "thiserror"

@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_load() {
-        let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/sample.fwork");
+        let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/sample.todog");
         let mut editor = Editor::default();
         let res = editor.load(file_path);
         res.expect("Failed to load file");
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_load_minimal() {
         let file_path =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/minimal_sample.fwork");
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/minimal_sample.todog");
         let mut editor = Editor::default();
         let res = editor.load(file_path);
         res.expect("Failed to load file");
