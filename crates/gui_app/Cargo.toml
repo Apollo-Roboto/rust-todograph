@@ -1,13 +1,14 @@
 [package]
 name = "tg-gui-app"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
 log = { workspace = true }
-open = "5.3.2"
 rfd = { workspace = true }
+open = { version = "5.3.2" }
 slint = { version = "1.15.1" }
 
 tg-core = { path = "../core" }

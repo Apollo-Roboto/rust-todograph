@@ -6,11 +6,11 @@ edition.workspace = true
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
-colored = { version = "3.0.0" }
-directories = "6.0.0"
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+colored = { version = "3.0.0" }
+directories = { version = "6.0.0" }
 
 [dev-dependencies]
 tempfile = { workspace = true }

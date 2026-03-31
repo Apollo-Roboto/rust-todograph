@@ -4655,7 +4655,7 @@ checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
 
 [[package]]
 name = "tg-cli-app"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "clap",
  "log",
@@ -4666,7 +4666,7 @@ dependencies = [
 
 [[package]]
 name = "tg-core"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "chrono",
  "colored",
@@ -4680,7 +4680,7 @@ dependencies = [
 
 [[package]]
 name = "tg-gui-app"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "chrono",
  "log",
