@@ -134,8 +134,7 @@ export component WorkBench inherits Rectangle {
     // View position y from the center of the viewport
     out property <length> view_pos_y;
     out property <float> zoom: 1;
-    /// freaks out if less than 0.50
-    in property <float> min_zoom: 0.55;
+    in property <float> min_zoom: 0.3;
     in property <float> max_zoom: 2.50;
     in property <bool> zoom_enabled: true;
     /// Mouse position x relative from the center of the workbench
@@ -159,6 +158,9 @@ export component WorkBench inherits Rectangle {
         root.view_pos_x = -(center_x + work_area.x - root.width / 2);
         root.view_pos_y = -(center_y + work_area.y - root.height / 2);
         root.moved_by(x, y);
+    }
+    public function reset_zoom() {
+        root.zoom = 1;
     }
     clip: true;
     border-color: black;

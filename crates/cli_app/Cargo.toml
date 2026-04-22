@@ -4,11 +4,10 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
-
 [dependencies]
-log = { workspace = true }
+log.workspace = true
+serde_json.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 clap = { version = "4.5.45", features = ["derive"] }
 
-tg-core = { path = "../core" }
+tg-core.path = "../core"

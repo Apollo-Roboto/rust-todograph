@@ -21,6 +21,8 @@ import {
     FileDialogType,
     FileDialogButtonGlobal,
     FileDialogResultStatus,
+    FileDialogFilter,
+    FileDialogResult,
 } from "widgets/file_dialog_button.slint";
 import { AboutWindowContent } from "about.slint";
 import { SelectionRectangle } from "widgets/selection_rectangle.slint";
@@ -95,17 +97,16 @@ export component AppWindow inherits Window {
         root.refresh_tasks();
         root.refresh_other();
     }
-    public function center_view() {
-        workbench.move_view_to(workbench.center_x, workbench.center_y);
-    }
     public function open_file(path: string) {
+        root.current_file_path = path;
         root.open_file_picked(path);
     }
     public function open() {
         let result = FileDialogButtonGlobal.open("Open File", "", [{ text: "TodoGraph", extensions : ["todog"] }], "", FileDialogType.load);
         if result.status == FileDialogResultStatus.picked {
-            root.current_file_path = result.file;
-            root.open_file_picked(result.file);
+            let file = result.file;
+            root.open_file_picked(file);
+            root.current_file_path = file;
         }
     }
     /// Save to the current file if set, or opens the save as dialog to pick a location
@@ -119,8 +120,9 @@ export component AppWindow inherits Window {
     public function save_as() {
         let result = FileDialogButtonGlobal.open("Save As", "", [{ text: "TodoGraph", extensions : ["todog"] }], root.current_file_path, FileDialogType.save);
         if result.status == FileDialogResultStatus.picked {
-            root.current_file_path = result.file;
-            root.save_file_picked(result.file);
+            let file = result.file;
+            root.save_file_picked(file);
+            root.current_file_path = file;
         }
     }
     public function new_project() {
@@ -261,6 +263,23 @@ export component AppWindow inherits Window {
         }
 
         Menu {
+            title: "View";
+            MenuItem {
+                title: "Center view";
+                activated => {
+                    workbench.move_view_to(workbench.center_x, workbench.center_y);
+                }
+            }
+
+            MenuItem {
+                title: "Reset zoom";
+                activated => {
+                    workbench.reset_zoom();
+                }
+            }
+        }
+
+        Menu {
             title: "Help";
             MenuItem {
                 title: "Toggle debug";
@@ -362,7 +381,6 @@ export component AppWindow inherits Window {
                 background_detail_color: Styles.workbench_background_details_color;
                 selection_rectangle_border: Styles.selection_rectangle_border;
                 selection_rectangle_fill: Styles.selection_rectangle_fill;
-                zoom_enabled: false; // currently buggy as heck
                 workbench_clicked => {
                     root.focus();
                     root.clear_selection();
