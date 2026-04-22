@@ -104,6 +104,13 @@ impl MindTaskState {
             MindTaskState::Done => MindTaskState::Doing,
         }
     }
+    pub fn is_done(&self) -> bool {
+        match self {
+            MindTaskState::Todo => false,
+            MindTaskState::Doing => false,
+            MindTaskState::Done => true,
+        }
+    }
 }
 
 impl Display for MindTaskState {
